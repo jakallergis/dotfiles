@@ -25,8 +25,8 @@ nnoremap <CR> o <Esc>k
 syntax on
 
 " Handle Lining
-set relativenumber
 set number
+set relativenumber
 set numberwidth=5
 
 " Handle Cursor
