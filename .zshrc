@@ -52,7 +52,7 @@ DEFAULT_USER=`whoami`
 # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git)
+plugins=(git node)
 
 source $ZSH/oh-my-zsh.sh
 
@@ -81,6 +81,9 @@ source $ZSH/oh-my-zsh.sh
 # users are encouraged to define aliases within the ZSH_CUSTOM folder.
 # For a full list of active aliases, run `alias`.
 #
+# Example aliases
+# alias zshconfig="mate ~/.zshrc"
+# alias ohmyzsh="mate ~/.oh-my-zsh"
 alias ud="sudo apt-get update"
 alias ug="sudo apt-get upgrade"
 alias ui="sudo apt-get install"
@@ -93,8 +96,8 @@ alias gcl="git clone"
 alias gsh="git push"
 alias gll="git pull"
 alias g="git"
-alias la="ls -a"
-alias ll="ls -al"
+alias la="ls -A"
+alias ll="ls -Alh"
 alias tnew="tmux new -s"
 alias tatt="tmux a -t"
 alias tls="tmux ls"
