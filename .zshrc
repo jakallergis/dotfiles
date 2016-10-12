@@ -80,7 +80,7 @@ source $ZSH/oh-my-zsh.sh
 # plugins, and themes. Aliases can be placed here, though oh-my-zsh
 # users are encouraged to define aliases within the ZSH_CUSTOM folder.
 # For a full list of active aliases, run `alias`.
-#
+
 # Example aliases
 # alias zshconfig="mate ~/.zshrc"
 # alias ohmyzsh="mate ~/.oh-my-zsh"
@@ -105,3 +105,10 @@ alias tls="tmux ls"
 alias zshc="vim ~/.zshrc"
 alias vimc="vim ~/.vimrc"
 alias omzshc="vim ~/.oh-my-zsh"
+
+
+# Functions and loaders
+
+# Include custom functions directory
+fpath=(~/.custom_zsh_functions $fpath)
+autoload -Uz zmv
