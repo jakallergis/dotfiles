@@ -294,7 +294,7 @@ for folder in */; do
                 echo -e "${ORANGE}$foldername${NC}"
                 echo -e $(zmv -n '(*)(.*)' '${foldername}$2' | sed -e "s/mv -- /\\\033[2m/g" -e "s/\' \'/ ----> /g" -e "s/$/\\\n\\\033[0m/g" -e "s/\'//g")
 
-                # If not test_mode - Rename
+                # If NOT test_mode - Rename
                 if [ -z $test_mode ]; then
                     zmv '(*)(.*)' '${foldername}$2'
                 fi
@@ -307,13 +307,15 @@ for folder in */; do
                         zmv '(*)(.*)' '${foldername}$2'
                     fi
                 else
-                    # ------------------------------ ELSE IF SUCCESS AND FULL SUCCESS ARE NOT 1 - DONT LOG & RENAME ------------------------------
-                    zmv -n '(*)(.*)' '${foldername}$2'
+                    # If not log_rename OR log_full_rename - Dont log
+                    zmv '(*)(.*)' '${foldername}$2'
                 fi
             fi
         else
+            # If log_full_conflicts - Full log
             if [ ! -z $log_full_conflicts ]; then
                 echo -e "${BLUE}${DIM}${foldername}:${NC} ${RED} conflict${NC}"
+                # If there are more than one .srt OR .sub
                 if [ "$srt" -gt 1 ] || [ "$sub" -gt 1 ]; then
                     echo -e "${DIM}-${NC} ${ORANGE}Subtitles:${NC} ${RED}${subs}${NC}"
                     if [ "$srt" -gt 1 ]; then
@@ -323,6 +325,7 @@ for folder in */; do
                         echo -e "${DIM}--${NC} ${BLUE}sub:${NC} ${RED}${sub}${NC}"
                     fi
                 fi
+                # If there are more than one .mp4 OR .avi OR .mkv OR mov
                 if [ "$mp4" -gt 1 ] || [ "$avi" -gt 1 ] || [ "$mkv" -gt 1 ] || [ "$mov" -gt 1 ]; then
                     echo -e "${DIM}-${NC} ${ORANGE}Videos:${NC} ${RED}${vids}${NC}"
                     if [ "$mp4" -gt 1 ]; then
@@ -339,12 +342,14 @@ for folder in */; do
                     fi
                 fi
             else
+                # If log_conflicts - Short Log
                 if [ ! -z $log_conflicts ]; then
                     echo -e "${BLUE}${DIM}${foldername}:${NC} ${RED} conflict${NC}"
                 fi
             fi
         fi
     else
+        # If folder empty
         if [ ! -z $log_empty ]; then
             echo "${BLUE}${foldername}:${NC} ${RED} empty${NC}"
         fi
