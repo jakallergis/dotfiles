@@ -1,4 +1,4 @@
-# If you come from bash you might have to change your $PATH.
+G If you come from bash you might have to change your $PATH.
 # export PATH=$HOME/bin:/usr/local/bin:$PATH
 
 # Path to your oh-my-zsh installation.
@@ -105,10 +105,17 @@ alias tls="tmux ls"
 alias zshc="vim ~/.zshrc"
 alias vimc="vim ~/.vimrc"
 alias omzshc="vim ~/.oh-my-zsh"
-
+alias getpath="echo $PATH | tr \: \\n"
 
 # Functions and loaders
 
 # Include custom functions directory
 fpath=(~/.custom_zsh_functions $fpath)
 autoload -Uz zmv
+
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
+
+export ANDROID_HOME=${HOME}/Android/Sdk
+export PATH=${PATH}:${ANDROID_HOME}/tools
+export PATH=${PATH}:${ANDROID_HOME}/platform-tools
