@@ -105,7 +105,7 @@ alias tls="tmux ls"
 alias zshc="vim ~/.zshrc"
 alias vimc="vim ~/.vimrc"
 alias omzshc="vim ~/.oh-my-zsh"
-alias getpath="echo $PATH | tr \: \\n"
+alias getpath="print -l $path"
 
 # Functions and loaders
 
