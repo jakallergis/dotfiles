@@ -1,9 +1,12 @@
 #!/bin/bash
+
+#C_BLUE="\e[34m"
+#NO_COLOR="\e[0m"
+
+echo "Updating Packages and installing prerequisites..."
+
 apt-get -qq update
 apt-get -qq install mc htop git unzip wget curl -y
-
-C_BLUE="\e[34m"
-NO_COLOR="\e[0m"
 
 echo
 echo "====================================================="
@@ -107,14 +110,14 @@ check_param() {
 print_params() {
 	echo "================="
 	echo
-	echo "Base domain url: ${C_BLUE}${base_domain}${NO_COLOR}"
-	echo "Hub domain url: ${C_BLUE}${hub_domain}${NO_COLOR}"
-	echo "hub port: ${C_BLUE}${hub_port}${NO_COLOR}"
-	echo "Youtrack domain url: ${C_BLUE}${yt_domain}${NO_COLOR}"
-	echo "Youtrack port: ${C_BLUE}${yt_port}${NO_COLOR}"
-	echo "Upsource domain url: ${C_BLUE}${us_domain}${NO_COLOR}"
-	echo "Upsource port: ${C_BLUE}${us_port}${NO_COLOR}"
-	echo "Cron email: ${C_BLUE}${cron_email}${NO_COLOR}"
+	echo "Base domain url: ${base_domain}"
+	echo "Hub domain url: ${hub_domain}"
+	echo "hub port: ${hub_port}"
+	echo "Youtrack domain url: ${yt_domain}"
+	echo "Youtrack port: ${yt_port}"
+	echo "Upsource domain url: ${us_domain}"
+	echo "Upsource port: ${us_port}"
+	echo "Cron email: ${cron_email}"
 	echo
 	echo "================="
 }
@@ -333,44 +336,59 @@ config_services() {
     /usr/jetbrains/youtrack/bin/youtrack.sh configure --listen-port ${yt_port} --base-url http://${yt_domain}
     /usr/jetbrains/upsource/bin/upsource.sh configure --listen-port ${us_port} --base-url http://${us_domain}
 
-    service hub start
-    service youtrack start
-    service upsource start
+    start_hub="y"
+    echo "Start Hub Service? [Y/n]"
+    read start_hub
+    if [ "$start_hub" == "no" ]; then echo "Skipping Hub Service" elif service hub start; fi
 
-    echo "goto setup"
-    echo $hub_domain
-    echo $yt_domain
-    echo $us_domain
+    start_youtrack="y"
+    echo "Start Hub Service? [Y/n]"
+    read start_youtrack
+    if [ "$start_youtrack" == "no" ]; then echo "Skipping Hub Service" elif service youtrack start; fi
+
+    start_upsource="y"
+    echo "Start Hub Service? [Y/n]"
+    read start_upsource
+    if [ "$start_upsource" == "no" ]; then echo "Skipping Hub Service" elif service upsource start; fi
+
+    echo "After manually starting the services the services will be accessible at:"
+    echo "Hub: ${hub_domain}"
+    echo "Youtrack: ${yt_domain}"
+    echo "Upsource: ${us_domain}"
+
+    if [ "$start_hub" == "no" ]; then echo "Hub Service: service hub start"; fi
+    if [ "$start_youtrack" == "no" ]; then echo "Youtrack Service: youtrack hub start"; fi
+    if [ "$start_upsource" == "no" ]; then echo "Upsource Service: upsource hub start"; fi
 }
 
 type="no"
 echo -n "Skip urls and ports input? [yes/NO]:"
 read type
 
-if [ "$type" == "no" ]; then
+if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then
   ask_param base_domain
   check_param base_domain ${base_domain}
-  echo "${C_BLUE}${base_domain}${NO_COLOR}"
+  echo ${base_domain}
   ask_param hub_domain
   check_param hub_domain ${hub_domain}
-  echo "${C_BLUE}${hub_domain}${NO_COLOR}"
+  echo "${hub_domain}"
   ask_param hub_port
   check_param hub_port ${hub_port}
-  echo "${C_BLUE}${hub_port}${NO_COLOR}"
+  echo "${hub_port}"
   ask_param yt_domain
   check_param yt_domain ${yt_domain}
-  echo "${C_BLUE}${yt_domain}${NO_COLOR}"
+  echo "${yt_domain}"
   ask_param yt_port
   check_param yt_port ${yt_port}
-  echo "${C_BLUE}${yt_port}${NO_COLOR}"
+  echo "${yt_port}"
   ask_param us_domain
   check_param us_domain ${us_domain}
-  echo "${C_BLUE}${us_domain}${NO_COLOR}"
+  echo "${us_domain}"
   ask_param us_port
   check_param us_port ${us_port}
-  echo "${C_BLUE}${us_port}${NO_COLOR}"
+  echo "${us_port}"
   ask_param cron_email
-  if [ "${cron_email}" != "" ]; then echo "${C_BLUE}${us_port}${NO_COLOR}"; fi
+  if [ "${cron_email}" != "" ]; then echo "${us_port}"; fi
 fi
 
 print_params
@@ -378,25 +396,19 @@ print_params
 type="no"
 echo -n "Skip installation of OpenJDK? [yes|no]"
 read type
-
-if [ "$type" == "no" ]; then
-  install_java
-fi
+if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then install_java; fi
 
 type="no"
 echo -n "Skip Download of Services? [yes|no]"
 read type
-
-if [ "$type" == "no" ]; then
-  download_services
-fi
+if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then download_services; fi
 
 type="no"
 echo -n "Skip boot scripts installation and configuration? [yes/no]:"
 read type
 
-if [ "$type" == "no" ]; then
-    echo
+if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then
+   echo
     make_initd youtrack
     echo
     make_initd hub
@@ -407,23 +419,14 @@ fi
 type="no"
 echo -n "Skip nginx installation and configuration? [yes/no]:"
 read type
-
-if [ "$type" == "no" ]; then
-  install_nginx
-fi
+if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then install_nginx; fi
 
 type="no"
 echo -n "Skip cron job installation and configuration? [yes/no]:"
 read type
-
-if [ "$type" == "no" ]; then
-  install_cronjob
-fi
+if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then install_cronjob; fi
 
 type="no"
 echo -n "Skip services initialization and configuration? [yes/no]:"
 read type
-
-if [ "$type" == "no" ]; then
-  install_cronjob
-fi
+if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then config_services; fi
