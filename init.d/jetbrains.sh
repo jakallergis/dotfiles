@@ -1,4 +1,5 @@
 #!/bin/bash
+apt-get -q update
 apt-get install mc htop git unzip wget curl -y
 
 echo
