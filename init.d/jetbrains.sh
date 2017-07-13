@@ -231,7 +231,7 @@ EOF
 install_nginx() {
     echo
     echo "configure nginx"
-    apt-get install -t ${code}-backports nginx -y
+    apt-get -qq install -t ${code}-backports nginx -y
 
     cat >./default<<EOF
 server {
@@ -328,44 +328,36 @@ EOF
 }
 
 config_services() {
-    service upsource stop
-    service youtrack stop
-    service hub stop
-
     /usr/jetbrains/hub/bin/hub.sh configure --listen-port ${hub_port} --base-url http://${hub_domain}
     /usr/jetbrains/youtrack/bin/youtrack.sh configure --listen-port ${yt_port} --base-url http://${yt_domain}
     /usr/jetbrains/upsource/bin/upsource.sh configure --listen-port ${us_port} --base-url http://${us_domain}
 
-    start_hub="y"
-    echo "Start Hub Service? [Y/n]"
+    echo "Start Hub Service? [yes/no]"
     read start_hub
-    if [ "$start_hub" == "no" ]; then echo "Skipping Hub Service" elif service hub start; fi
+    if [ "$start_hub" != "yes" ]; then echo "Skipping Hub Service" elif service hub start; fi
 
-    start_youtrack="y"
-    echo "Start Hub Service? [Y/n]"
+    echo "Start Youtrack Service? [yes/no]"
     read start_youtrack
-    if [ "$start_youtrack" == "no" ]; then echo "Skipping Hub Service" elif service youtrack start; fi
+    if [ "$start_youtrack" != "yes" ]; then echo "Skipping Hub Service" elif service youtrack start; fi
 
-    start_upsource="y"
-    echo "Start Hub Service? [Y/n]"
+    echo "Start Upsource Service? [yes/no]"
     read start_upsource
-    if [ "$start_upsource" == "no" ]; then echo "Skipping Hub Service" elif service upsource start; fi
+    if [ "$start_upsource" != "yes" ]; then echo "Skipping Hub Service" elif service upsource start; fi
 
     echo "After manually starting the services the services will be accessible at:"
     echo "Hub: ${hub_domain}"
     echo "Youtrack: ${yt_domain}"
     echo "Upsource: ${us_domain}"
 
-    if [ "$start_hub" == "no" ]; then echo "Hub Service: service hub start"; fi
-    if [ "$start_youtrack" == "no" ]; then echo "Youtrack Service: youtrack hub start"; fi
-    if [ "$start_upsource" == "no" ]; then echo "Upsource Service: upsource hub start"; fi
+    if [ "$start_hub" != "yes" ]; then echo "Hub Service: service hub start"; fi
+    if [ "$start_youtrack" != "yes" ]; then echo "Youtrack Service: youtrack hub start"; fi
+    if [ "$start_upsource" != "yes" ]; then echo "Upsource Service: upsource hub start"; fi
 }
 
-type="no"
 echo -n "Skip urls and ports input? [yes/NO]:"
 read type
 
-if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then
+if [ "$type" != "yes" ]; then
   ask_param base_domain
   check_param base_domain ${base_domain}
   echo ${base_domain}
@@ -393,40 +385,38 @@ fi
 
 print_params
 
-type="no"
 echo -n "Skip installation of OpenJDK? [yes|no]"
 read type
-if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then install_java; fi
+if [ "$type" != "yes" ]; then install_java; fi
 
-type="no"
 echo -n "Skip Download of Services? [yes|no]"
 read type
-if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then download_services; fi
+if [ "$type" != "yes" ]; then download_services; fi
 
-type="no"
 echo -n "Skip boot scripts installation and configuration? [yes/no]:"
 read type
 
-if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then
+if [ "$type" != "yes" ]; then
    echo
     make_initd youtrack
     echo
     make_initd hub
     echo
     make_initd upsource
+
+    service upsource stop
+    service youtrack stop
+    service hub stop
 fi
 
-type="no"
 echo -n "Skip nginx installation and configuration? [yes/no]:"
 read type
-if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then install_nginx; fi
+if [ "$type" != "yes" ]; then install_nginx; fi
 
-type="no"
 echo -n "Skip cron job installation and configuration? [yes/no]:"
 read type
-if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then install_cronjob; fi
+if [ "$type" != "yes" ]; then install_cronjob; fi
 
-type="no"
 echo -n "Skip services initialization and configuration? [yes/no]:"
 read type
-if [ "$type" == "no" ] || [ "$type" == "NO" ] || [ "$type" == "No" ] || [ "$type" == "" ]; then config_services; fi
+if [ "$type" != "yes" ]; then config_services; fi
