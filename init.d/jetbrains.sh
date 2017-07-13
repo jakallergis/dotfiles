@@ -128,23 +128,22 @@ wget -q https://download.jetbrains.com/upsource/upsource-2017.2.2057.zip -O /usr
 pushd /usr/jetbrains/hub
 echo "Exctracting Hub..."
 unzip -q arch.zip
-cp -R hub-ring-bundle-2017.2.6307 .
+mv hub-ring-bundle-2017.2.6307/* .
 rm -rf hub-ring-bundle-2017.2.6307
 popd
 
 pushd /usr/jetbrains/youtrack
 echo "Exctracting Youtrack..."
 unzip -q arch.zip
-cp -R youtrack-2017.2.34480 .
+mv youtrack-2017.2.34480/* .
 rm -rf youtrack-2017.2.34480
 popd
 
 pushd /usr/jetbrains/upsource
 echo "Exctracting Upsource..."
 unzip -q arch.zip
-cp -R upsource-2017.2.2057 .
+mv upsource-2017.2.2057/* .
 rm -rf upsource-2017.2.2057
-mv Upsource/* ../upsource/
 chmod +x -R ../upsource/
 popd
 popd
