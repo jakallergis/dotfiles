@@ -108,19 +108,11 @@ echo "Installing Java JDK 1.8"
 echo
 
 if [ "$code" != "jessie" ]; then
-  echo "from oracle site"
-  echo
-  url=http://download.oracle.com/otn-pub/java/jdk/8u60-b27/
-  java_version=jdk-8u60-linux-x64.tar.gz
-
-  wget -c -O "$java_version" --no-check-certificate --no-cookies --header "Cookie: oraclelicense=accept-securebackup-cookie" "$url$java_version"
-
-  mkdir -p /opt/jdk
-
-  tar -zxf $java_version -C /opt/jdk
-
-  update-alternatives --install /usr/bin/java java /opt/jdk/jdk1.8.0_60/bin/java 100
-  update-alternatives --install /usr/bin/javac javac /opt/jdk/jdk1.8.0_60/bin/javac 100
+  add-apt-repository ppa:openjdk-r/ppa -y
+  echo "Updating Packages..."
+  apt-get -qq update
+  echo "Installing..."
+  apt-get install openjdk-7-jre -y
 else
   add-apt-repository ppa:openjdk-r/ppa -y
   echo "Updating Packages..."
