@@ -59,42 +59,42 @@ pushd /var/tmp > /dev/null 2>&1
 
 ask_param () {
     if [ "$1" == "base_domain" ]; then
-        echo -ne "${BLUE}Base domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
+        echo -e "${BLUE}Base domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
         read base_domain
     fi
 
     if [ "$1" == "hub_domain" ]; then
-        echo -ne "${BLUE}Hub domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
+        echo -e "${BLUE}Hub domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
         read hub_domain
     fi
 
     if [ "$1" == "hub_port" ]; then
-        echo -ne "${BLUE}Hub port: ${NC}${DIM}(Default: 8080): ${NC}"
+        echo -e "${BLUE}Hub port: ${NC}${DIM}(Default: 8080): ${NC}"
         read hub_port
     fi
 
     if [ "$1" == "yt_domain" ]; then
-        echo -ne "${BLUE}Youtrack domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
+        echo -e "${BLUE}Youtrack domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
         read yt_domain
     fi
 
     if [ "$1" == "yt_port" ]; then
-        echo -ne "${BLUE}Youtrack port: ${NC}${DIM}(Default: 8081): ${NC}"
+        echo -e "${BLUE}Youtrack port: ${NC}${DIM}(Default: 8081): ${NC}"
         read yt_port
     fi
 
     if [ "$1" == "us_domain" ]; then
-        echo -ne "${BLUE}Upsource domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
+        echo -e "${BLUE}Upsource domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
         read us_domain
     fi
 
     if [ "$1" == "us_port" ]; then
-        echo -ne "${BLUE}Upsource port: ${NC}${DIM}(Default: 8082) ${NC}"
+        echo -e "${BLUE}Upsource port: ${NC}${DIM}(Default: 8082) ${NC}"
         read us_port
     fi
 
     if [ "$1" == "cron_email" ]; then
-        echo -ne "${BLUE}Cron email: ${NC}"
+        echo -e "${BLUE}Cron email: ${NC}"
         read cron_email
     fi
 }
@@ -127,7 +127,7 @@ print_params() {
 }
 
 install_java() {
-    echo -ne "${BLUE}Version of openJDK JRE to Install ${NC}${DIM}(Default: openjdk-${ORANGE}7${NC}${DIM}-jre) ${ORANGE}[7/8]${BLUE}:${NC}"
+    echo -e "${BLUE}Version of openJDK JRE to Install ${NC}${DIM}(Default: openjdk-${ORANGE}7${NC}${DIM}-jre) ${ORANGE}[7/8]${BLUE}:${NC}"
     read version_to_install
 
     if [ "$version_to_install" == 8 ]; then
@@ -368,7 +368,7 @@ config_swapfile() {
     echo -e "${NC}${DIM}Swapfile configuration complete.${NC}"
 }
 
-echo -ne "${BLUE}Skip urls and ports input? ${ORANGE}[yes/NO]:${NC}"
+echo -e "${BLUE}Skip urls and ports input? ${ORANGE}[yes/NO]:${NC}"
 read type
 
 if [ "$type" != "yes" ]; then
