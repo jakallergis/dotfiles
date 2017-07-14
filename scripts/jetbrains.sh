@@ -227,11 +227,6 @@ exit 0
 EOF
 
   chmod +x /etc/init.d/$1
-
-  update-rc.d $1 defaults
-  if [ "$1" != "hub" ]; then
-    update-rc.d $1 disable
-  fi
 }
 
 install_nginx() {
@@ -456,6 +451,16 @@ if [ "$type" != "yes" ]; then
     echo
     make_initd upsource
 
+    echo -e "${NC}${DIM} Updating default services scripts...${NC}"
+    update-rc.d hub defaults
+    update-rc.d youtrack defaults
+    update-rc.d upsource defaults
+
+    echo -e "${NC}${DIM} Disabling services scripts for Youtrack an Upsource...${NC}"
+    update-rc.d youtrack disable
+    update-rc.d upsource disable
+
+    echo -e "${NC}${DIM} Stopping services...${NC}"
     service upsource stop
     service youtrack stop
     service hub stop
