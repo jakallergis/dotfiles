@@ -19,19 +19,19 @@ echo -e "${BLUE}                     WELCOME"
 echo -e "${ORANGE}=====================================================${NC}"
 echo
 echo -e "${ORANGE}Hub"
-echo -e "${DIM}download https://www.jetbrains.com/hub/download/"
+echo -e "${NC}${DIM}download https://www.jetbrains.com/hub/download/"
 echo -e "read instruction https://www.jetbrains.com/hub/help/1.0/Installing-Hub-with-Zip-Distribution.html"
 echo -e "install into /usr/jetbrains/youtrack/"
 echo -e "${ORANGE}=====================================${NC}"
 echo
 echo -e "${ORANGE}YouTrack"
-echo -e "${DIM}download https://www.jetbrains.com/youtrack/download/get_youtrack.html"
+echo -e "${NC}${DIM}download https://www.jetbrains.com/youtrack/download/get_youtrack.html"
 echo -e "read instruction https://confluence.jetbrains.com/display/YTD65/Installing+YouTrack+with+ZIP+Distribution#InstallingYouTrackwithZIPDistribution-InstallingNewYouTrackServer"
 echo -e "install into /usr/jetbrains/youtrack/"
 echo -e "${ORANGE}=====================================${NC}"
 echo
 echo -e "${ORANGE}Upsource"
-echo -e "${DIM}download https://www.jetbrains.com/upsource/download/"
+echo -e "${NC}${DIM}download https://www.jetbrains.com/upsource/download/"
 echo -e "read the first https://www.jetbrains.com/upsource/help/2.0/prerequisites.html"
 echo -e "install into /usr/jetbrains/upsource/"
 echo -e "${ORANGE}=====================================${NC}"
@@ -61,37 +61,37 @@ pushd /var/tmp
 
 ask_param () {
     if [ "$1" == "base_domain" ]; then
-        echo -ne "${BLUE}Base domain url ${DIM}(Default: http://localhost): ${NC}"
+        echo -ne "${BLUE}Base domain url ${NC}${DIM}(Default: http://localhost): ${NC}"
         read base_domain
     fi
 
     if [ "$1" == "hub_domain" ]; then
-        echo -ne "${BLUE}Hub domain url: ${DIM}(Default: http://localhost): ${NC}"
+        echo -ne "${BLUE}Hub domain url: ${NC}${DIM}(Default: http://localhost): ${NC}"
         read hub_domain
     fi
 
     if [ "$1" == "hub_port" ]; then
-        echo -ne "${BLUE}Hub port: ${DIM}(Default: 8080): ${NC}"
+        echo -ne "${BLUE}Hub port: ${NC}${DIM}(Default: 8080): ${NC}"
         read hub_port
     fi
 
     if [ "$1" == "yt_domain" ]; then
-        echo -ne "${BLUE}Youtrack domain url: ${DIM}(Default: http://localhost): ${NC}"
+        echo -ne "${BLUE}Youtrack domain url: ${NC}${DIM}(Default: http://localhost): ${NC}"
         read yt_domain
     fi
 
     if [ "$1" == "yt_port" ]; then
-        echo -ne "${BLUE}Youtrack port: ${DIM}(Default: 8081): ${NC}"
+        echo -ne "${BLUE}Youtrack port: ${NC}${DIM}(Default: 8081): ${NC}"
         read yt_port
     fi
 
     if [ "$1" == "us_domain" ]; then
-        echo -ne "${BLUE}Upsource domain url: ${DIM}(Default: http://localhost): ${NC}"
+        echo -ne "${BLUE}Upsource domain url: ${NC}${DIM}(Default: http://localhost): ${NC}"
         read us_domain
     fi
 
     if [ "$1" == "us_port" ]; then
-        echo -ne "${BLUE}Upsource port: ${DIM}(Default: 8082): ${NC}"
+        echo -ne "${BLUE}Upsource port: ${NC}${DIM}(Default: 8082): ${NC}"
         read us_port
     fi
 
@@ -116,20 +116,20 @@ check_param() {
 print_params() {
 	echo -e "${ORANGE}=================${NC}"
 	echo
-	echo -e "${DIM}Base domain url: ${BLUE}${base_domain}${NC}"
-	echo -e "${DIM}Hub domain url: ${BLUE}${hub_domain}${NC}"
-	echo -e "${DIM}hub port: ${BLUE}${hub_port}${NC}"
-	echo -e "${DIM}Youtrack domain url: ${BLUE}${yt_domain}${NC}"
-	echo -e "${DIM}Youtrack port: ${BLUE}${yt_port}${NC}"
-	echo -e "${DIM}Upsource domain url: ${BLUE}${us_domain}${NC}"
-	echo -e "${DIM}Upsource port: ${BLUE}${us_port}${NC}"
-	echo -e "${DIM}Cron email: ${BLUE}${cron_email}${NC}"
+	echo -e "${NC}${DIM}Base domain url: ${BLUE}${base_domain}${NC}"
+	echo -e "${NC}${DIM}Hub domain url: ${BLUE}${hub_domain}${NC}"
+	echo -e "${NC}${DIM}hub port: ${BLUE}${hub_port}${NC}"
+	echo -e "${NC}${DIM}Youtrack domain url: ${BLUE}${yt_domain}${NC}"
+	echo -e "${NC}${DIM}Youtrack port: ${BLUE}${yt_port}${NC}"
+	echo -e "${NC}${DIM}Upsource domain url: ${BLUE}${us_domain}${NC}"
+	echo -e "${NC}${DIM}Upsource port: ${BLUE}${us_port}${NC}"
+	echo -e "${NC}${DIM}Cron email: ${BLUE}${cron_email}${NC}"
 	echo
 	echo -e "${ORANGE}=================${NC}"
 }
 
 install_java() {
-    echo -ne "${BLUE}Version of openJDK JRE to Install ${DIM}(Default: openjdk-${ORANGE}7${BLUE}-jre) ${ORANGE}[7/8]${BLUE}:${NC}"
+    echo -ne "${BLUE}Version of openJDK JRE to Install ${NC}${DIM}(Default: openjdk-${ORANGE}7${BLUE}-jre) ${ORANGE}[7/8]${BLUE}:${NC}"
     read version_to_install
 
     if [ "$version_to_install" == 8 ]; then
@@ -147,7 +147,7 @@ install_java() {
     apt-get -qq install openjdk-${version_to_install}-jre -y
 
     echo
-    echo -e "${DIM}Java was successfully Installed${NC}"
+    echo -e "${NC}${DIM}Java was successfully Installed${NC}"
     echo
 }
 
@@ -162,7 +162,7 @@ download_services() {
     wget -qq https://download.jetbrains.com/upsource/upsource-2017.2.2057.zip -O /usr/jetbrains/upsource/arch.zip
 
     pushd /usr/jetbrains/hub
-    echo -e "${DIM}Exctracting Hub...${NC}"
+    echo -e "${NC}${DIM}Exctracting Hub...${NC}"
     unzip -qq arch.zip
     mv hub-ring-bundle-2017.2.6307/* .
     rm -rf hub-ring-bundle-2017.2.6307
@@ -170,7 +170,7 @@ download_services() {
     popd
 
     pushd /usr/jetbrains/youtrack
-    echo -e "${DIM}Exctracting Youtrack...${NC}"
+    echo -e "${NC}${DIM}Exctracting Youtrack...${NC}"
     unzip -qq arch.zip
     mv youtrack-2017.2.34480/* .
     rm -rf youtrack-2017.2.34480
@@ -178,7 +178,7 @@ download_services() {
     popd
 
     pushd /usr/jetbrains/upsource
-    echo -e "${DIM}Exctracting Upsource...${NC}"
+    echo -e "${NC}${DIM}Exctracting Upsource...${NC}"
     unzip -qq arch.zip
     mv upsource-2017.2.2057/* .
     rm -rf upsource-2017.2.2057
@@ -337,15 +337,15 @@ EOF
 
 config_services() {
     echo
-    echo -e "${ORANGE}Configuring Hub...${DIM}"
+    echo -e "${ORANGE}Configuring Hub...${NC}${DIM}"
     /usr/jetbrains/hub/bin/hub.sh configure --listen-port ${hub_port} --base-url http://${hub_domain}
 
     echo -e "${NC}"
-    echo -e "${ORANGE}Configuring Youtrack...${DIM}"
+    echo -e "${ORANGE}Configuring Youtrack...${NC}${DIM}"
     /usr/jetbrains/youtrack/bin/youtrack.sh configure --listen-port ${yt_port} --base-url http://${yt_domain}
 
     echo -e "${NC}"
-    echo -e "${ORANGE}Configuring Upsource...${DIM}"
+    echo -e "${ORANGE}Configuring Upsource...${NC}${DIM}"
     /usr/jetbrains/upsource/bin/upsource.sh configure --listen-port ${us_port} --base-url http://${us_domain}
 
     echo =e "${NC}"
@@ -353,15 +353,15 @@ config_services() {
     if [ "$1" == "initd_created" ]; then
         echo -e "${BLUE}Start Hub Service? ${ORANGE}[yes/no]:${NC}"
         read start_hub
-        if [ "$start_hub" != "yes" ]; then echo -e "${DIM}Skipping Hub Service...${NC}" else service hub start; fi
+        if [ "$start_hub" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}" else service hub start; fi
 
         echo -e "${BLUE}Start Youtrack Service? ${ORANGE}[yes/no]:${NC}"
         read start_youtrack
-        if [ "$start_youtrack" != "yes" ]; then echo -e "${DIM}Skipping Hub Service...${NC}" else service youtrack start; fi
+        if [ "$start_youtrack" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}" else service youtrack start; fi
 
         echo -e "${BLUE}Start Upsource Service? ${ORANGE}[yes/no]:${NC}"
         read start_upsource
-        if [ "$start_upsource" != "yes" ]; then echo -e "${DIM}Skipping Hub Service...${NC}" else service upsource start; fi
+        if [ "$start_upsource" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}" else service upsource start; fi
 
         echo -e "${ORANGE}After manually starting the services the services will be accessible at:${NC}"
         echo -e "${BLUE}Hub: ${ORANGE}${hub_domain}${NC}"
@@ -371,9 +371,9 @@ config_services() {
         if [ "$start_hub" != "yes" ] || [ "$start_youtrack" != "yes" ] || [ "$start_upsource" != "yes" ]; then
             echo -e "${ORANGE}To start each service run:${NC}"
         fi
-        if [ "$start_hub" != "yes" ]; then echo -e "${DIM}Hub Service: ${ORANGE}service hub start"${NC}; fi
-        if [ "$start_youtrack" != "yes" ]; then echo -e "${DIM}Youtrack Service: ${ORANGE}service youtrack start"${NC}; fi
-        if [ "$start_upsource" != "yes" ]; then echo -e "${DIM}Upsource Service: ${ORANGE}service upsource start"${NC}; fi
+        if [ "$start_hub" != "yes" ]; then echo -e "${NC}${DIM}Hub Service: ${ORANGE}service hub start"${NC}; fi
+        if [ "$start_youtrack" != "yes" ]; then echo -e "${NC}${DIM}Youtrack Service: ${ORANGE}service youtrack start"${NC}; fi
+        if [ "$start_upsource" != "yes" ]; then echo -e "${NC}${DIM}Upsource Service: ${ORANGE}service upsource start"${NC}; fi
     fi
 }
 
