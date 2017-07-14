@@ -1,39 +1,45 @@
 #!/bin/bash
 
-#C_BLUE="\e[34m"
-#NO_COLOR="\e[0m"
+DIM='\033[2m'
+RED='\033[0;31m'
+ORANGE='\033[0;33m'
+BLUE='\033[0;34m'
+GREEN='\033[0;32m'
+NC='\033[0m' # No Color
 
-echo "Updating Packages and installing prerequisites..."
+echo
+echo -e "${BLUE}Updating Packages and installing prerequisites...${NC}"
 
 apt-get -qq update
 apt-get -qq install mc htop git unzip wget curl -y
 
 echo
-echo "====================================================="
-echo "                     WELCOME"
-echo "====================================================="
+echo -e "${ORANGE}====================================================="
+echo -e "${BLUE}                     WELCOME"
+echo -e "${ORANGE}=====================================================${NC}"
 echo
-echo "Hub"
-echo "download https://www.jetbrains.com/hub/download/"
-echo "read instruction https://www.jetbrains.com/hub/help/1.0/Installing-Hub-with-Zip-Distribution.html"
-echo "install into /usr/jetbrains/youtrack/"
-echo "====================================="
+echo -e "${ORANGE}Hub"
+echo -e "${DIM}download https://www.jetbrains.com/hub/download/"
+echo -e "read instruction https://www.jetbrains.com/hub/help/1.0/Installing-Hub-with-Zip-Distribution.html"
+echo -e "install into /usr/jetbrains/youtrack/"
+echo -e "${ORANGE}=====================================${NC}"
 echo
-echo "YouTrack"
-echo "download https://www.jetbrains.com/youtrack/download/get_youtrack.html"
-echo "read instruction https://confluence.jetbrains.com/display/YTD65/Installing+YouTrack+with+ZIP+Distribution#InstallingYouTrackwithZIPDistribution-InstallingNewYouTrackServer"
-echo "install into /usr/jetbrains/youtrack/"
-echo "====================================="
+echo -e "${ORANGE}YouTrack"
+echo -e "${DIM}download https://www.jetbrains.com/youtrack/download/get_youtrack.html"
+echo -e "read instruction https://confluence.jetbrains.com/display/YTD65/Installing+YouTrack+with+ZIP+Distribution#InstallingYouTrackwithZIPDistribution-InstallingNewYouTrackServer"
+echo -e "install into /usr/jetbrains/youtrack/"
+echo -e "${ORANGE}=====================================${NC}"
 echo
-echo "Upsource"
-echo "download https://www.jetbrains.com/upsource/download/"
-echo "read the first https://www.jetbrains.com/upsource/help/2.0/prerequisites.html"
-echo "install into /usr/jetbrains/upsource/"
-echo "====================================="
+echo -e "${ORANGE}Upsource"
+echo -e "${DIM}download https://www.jetbrains.com/upsource/download/"
+echo -e "read the first https://www.jetbrains.com/upsource/help/2.0/prerequisites.html"
+echo -e "install into /usr/jetbrains/upsource/"
+echo -e "${ORANGE}=====================================${NC}"
 echo
 
-echo "==================================="
-echo "In order to continue installing we need to set a few properties for nginx."
+echo -e "${ORANGE}=====================================${NC}"
+echo "In order to continue installing we need to set a few properties for nginx..."
+echo
 
 base_domain="http://localhost.local"
 hub_domain="http://localhost.local"
@@ -47,7 +53,7 @@ cron_email=""
 code=`lsb_release -a | grep Codename | sed 's/[[:space:]]//g' | cut -f2 -d:`
 
 echo
-echo "Debian codename: ${code}"
+echo -e "${ORANGE}Debian codename: ${RED}${code}${NC}"
 echo
 
 mkdir -p /var/tmp
@@ -55,42 +61,42 @@ pushd /var/tmp
 
 ask_param () {
     if [ "$1" == "base_domain" ]; then
-        echo -n "Base domain url (Default: http://localhost): "
+        echo -ne "${BLUE}Base domain url ${DIM}(Default: http://localhost): ${NC}"
         read base_domain
     fi
 
     if [ "$1" == "hub_domain" ]; then
-        echo -n "Hub domain url: (Default: http://localhost): "
+        echo -ne "${BLUE}Hub domain url: ${DIM}(Default: http://localhost): ${NC}"
         read hub_domain
     fi
 
     if [ "$1" == "hub_port" ]; then
-        echo -n "hub port: (Default: 8080): "
+        echo -ne "${BLUE}Hub port: ${DIM}(Default: 8080): ${NC}"
         read hub_port
     fi
 
     if [ "$1" == "yt_domain" ]; then
-        echo -n "Youtrack domain url: (Default: http://localhost): "
+        echo -ne "${BLUE}Youtrack domain url: ${DIM}(Default: http://localhost): ${NC}"
         read yt_domain
     fi
 
     if [ "$1" == "yt_port" ]; then
-        echo -n "Youtrack port: (Default: 8081): "
+        echo -ne "${BLUE}Youtrack port: ${DIM}(Default: 8081): ${NC}"
         read yt_port
     fi
 
     if [ "$1" == "us_domain" ]; then
-        echo -n "Upsource domain url: (Default: http://localhost): "
+        echo -ne "${BLUE}Upsource domain url: ${DIM}(Default: http://localhost): ${NC}"
         read us_domain
     fi
 
     if [ "$1" == "us_port" ]; then
-        echo -n "Upsource port: (Default: 8082): "
+        echo -ne "${BLUE}Upsource port: ${DIM}(Default: 8082): ${NC}"
         read us_port
     fi
 
     if [ "$1" == "cron_email" ]; then
-        echo -n "Cron email: "
+        echo -ne "${BLUE}Cron email: ${NC}"
         read cron_email
     fi
 }
@@ -108,53 +114,55 @@ check_param() {
 }
 
 print_params() {
-	echo "================="
+	echo -e "${ORANGE}=================${NC}"
 	echo
-	echo "Base domain url: ${base_domain}"
-	echo "Hub domain url: ${hub_domain}"
-	echo "hub port: ${hub_port}"
-	echo "Youtrack domain url: ${yt_domain}"
-	echo "Youtrack port: ${yt_port}"
-	echo "Upsource domain url: ${us_domain}"
-	echo "Upsource port: ${us_port}"
-	echo "Cron email: ${cron_email}"
+	echo -e "${DIM}Base domain url: ${BLUE}${base_domain}${NC}"
+	echo -e "${DIM}Hub domain url: ${BLUE}${hub_domain}${NC}"
+	echo -e "${DIM}hub port: ${BLUE}${hub_port}${NC}"
+	echo -e "${DIM}Youtrack domain url: ${BLUE}${yt_domain}${NC}"
+	echo -e "${DIM}Youtrack port: ${BLUE}${yt_port}${NC}"
+	echo -e "${DIM}Upsource domain url: ${BLUE}${us_domain}${NC}"
+	echo -e "${DIM}Upsource port: ${BLUE}${us_port}${NC}"
+	echo -e "${DIM}Cron email: ${BLUE}${cron_email}${NC}"
 	echo
-	echo "================="
+	echo -e "${ORANGE}=================${NC}"
 }
 
 install_java() {
-    version_to_install=7
-    if [ "$1" == 8 ]; then
+    echo -ne "${BLUE}Version of openJDK JRE to Install ${DIM}(Default: openjdk-${ORANGE}7${BLUE}-jre) ${ORANGE}[7/8]${BLUE}:${NC}"
+    read version_to_install
+
+    if [ "$version_to_install" == 8 ]; then
         version_to_install=8
+    else
+        version_to_install=7
     fi
 
     echo
-    echo "Installing Java JDK 1.8"
+    echo -e "${ORANGE}Installing openJDK ${version_to_install} JRE...${NC}"
     echo
 
-    add-apt-repository ppa:openjdk-r/ppa -y
-    echo "Updating Packages..."
+    add-apt-repository ppa:openjdk-r/ppa -y > /dev/null 2>&1
     apt-get -qq update
-    echo "Installing..."
-    apt-get install openjdk-${version_to_install}-jre -y
+    apt-get -qq install openjdk-${version_to_install}-jre -y
 
     echo
-    echo "Java was successfully Installed"
+    echo -e "${DIM}Java was successfully Installed${NC}"
     echo
 }
 
 download_services() {
     mkdir -p /usr/jetbrains/youtrack /usr/jetbrains/hub /usr/jetbrains/upsource
 
-    echo "Downloading Hub..."
+    echo -e "${ORANGE}Downloading Hub...${NC}"
     wget -qq https://download.jetbrains.com/hub/2017.2/hub-ring-bundle-2017.2.6307.zip -O /usr/jetbrains/hub/arch.zip
-    echo "Downloading Youtrack..."
+    echo -e "${ORANGE}Downloading Youtrack...${NC}"
     wget -qq https://download.jetbrains.com/charisma/youtrack-2017.2.34480.zip -O /usr/jetbrains/youtrack/arch.zip
-    echo "Downloading Upsource..."
+    echo -e "${ORANGE}Downloading Upsource...${NC}"
     wget -qq https://download.jetbrains.com/upsource/upsource-2017.2.2057.zip -O /usr/jetbrains/upsource/arch.zip
 
     pushd /usr/jetbrains/hub
-    echo "Exctracting Hub..."
+    echo -e "${DIM}Exctracting Hub...${NC}"
     unzip -qq arch.zip
     mv hub-ring-bundle-2017.2.6307/* .
     rm -rf hub-ring-bundle-2017.2.6307
@@ -162,7 +170,7 @@ download_services() {
     popd
 
     pushd /usr/jetbrains/youtrack
-    echo "Exctracting Youtrack..."
+    echo -e "${DIM}Exctracting Youtrack...${NC}"
     unzip -qq arch.zip
     mv youtrack-2017.2.34480/* .
     rm -rf youtrack-2017.2.34480
@@ -170,7 +178,7 @@ download_services() {
     popd
 
     pushd /usr/jetbrains/upsource
-    echo "Exctracting Upsource..."
+    echo -e "${DIM}Exctracting Upsource...${NC}"
     unzip -qq arch.zip
     mv upsource-2017.2.2057/* .
     rm -rf upsource-2017.2.2057
@@ -181,7 +189,7 @@ download_services() {
 
 make_initd() {
 
-  echo "making init.d for $1"
+  echo -e "${ORANGE}Making init.d for $1...${NC}"
 
   rq="hub "
   if [ "$1" == "hub" ]; then
@@ -230,7 +238,7 @@ EOF
 
 install_nginx() {
     echo
-    echo "configure nginx"
+    echo -e "${ORANGE}Configure nginx...${NC}"
     apt-get -qq install -t ${code}-backports nginx -y
 
     cat >./default<<EOF
@@ -328,33 +336,48 @@ EOF
 }
 
 config_services() {
+    echo
+    echo -e "${ORANGE}Configuring Hub...${DIM}"
     /usr/jetbrains/hub/bin/hub.sh configure --listen-port ${hub_port} --base-url http://${hub_domain}
+
+    echo -e "${NC}"
+    echo -e "${ORANGE}Configuring Youtrack...${DIM}"
     /usr/jetbrains/youtrack/bin/youtrack.sh configure --listen-port ${yt_port} --base-url http://${yt_domain}
+
+    echo -e "${NC}"
+    echo -e "${ORANGE}Configuring Upsource...${DIM}"
     /usr/jetbrains/upsource/bin/upsource.sh configure --listen-port ${us_port} --base-url http://${us_domain}
 
-    echo "Start Hub Service? [yes/no]"
-    read start_hub
-    if [ "$start_hub" != "yes" ]; then echo "Skipping Hub Service" elif service hub start; fi
+    echo =e "${NC}"
 
-    echo "Start Youtrack Service? [yes/no]"
-    read start_youtrack
-    if [ "$start_youtrack" != "yes" ]; then echo "Skipping Hub Service" elif service youtrack start; fi
+    if [ "$1" == "initd_created" ]; then
+        echo -e "${BLUE}Start Hub Service? ${ORANGE}[yes/no]:${NC}"
+        read start_hub
+        if [ "$start_hub" != "yes" ]; then echo -e "${DIM}Skipping Hub Service...${NC}" else service hub start; fi
 
-    echo "Start Upsource Service? [yes/no]"
-    read start_upsource
-    if [ "$start_upsource" != "yes" ]; then echo "Skipping Hub Service" elif service upsource start; fi
+        echo -e "${BLUE}Start Youtrack Service? ${ORANGE}[yes/no]:${NC}"
+        read start_youtrack
+        if [ "$start_youtrack" != "yes" ]; then echo -e "${DIM}Skipping Hub Service...${NC}" else service youtrack start; fi
 
-    echo "After manually starting the services the services will be accessible at:"
-    echo "Hub: ${hub_domain}"
-    echo "Youtrack: ${yt_domain}"
-    echo "Upsource: ${us_domain}"
+        echo -e "${BLUE}Start Upsource Service? ${ORANGE}[yes/no]:${NC}"
+        read start_upsource
+        if [ "$start_upsource" != "yes" ]; then echo -e "${DIM}Skipping Hub Service...${NC}" else service upsource start; fi
 
-    if [ "$start_hub" != "yes" ]; then echo "Hub Service: service hub start"; fi
-    if [ "$start_youtrack" != "yes" ]; then echo "Youtrack Service: youtrack hub start"; fi
-    if [ "$start_upsource" != "yes" ]; then echo "Upsource Service: upsource hub start"; fi
+        echo -e "${ORANGE}After manually starting the services the services will be accessible at:${NC}"
+        echo -e "${BLUE}Hub: ${ORANGE}${hub_domain}${NC}"
+        echo -e "${BLUE}Youtrack: ${ORANGE}${yt_domain}${NC}"
+        echo -e "${BLUE}Upsource: ${ORANGE}${us_domain}${NC}"
+
+        if [ "$start_hub" != "yes" ] || [ "$start_youtrack" != "yes" ] || [ "$start_upsource" != "yes" ]; then
+            echo -e "${ORANGE}To start each service run:${NC}"
+        fi
+        if [ "$start_hub" != "yes" ]; then echo -e "${DIM}Hub Service: ${ORANGE}service hub start"${NC}; fi
+        if [ "$start_youtrack" != "yes" ]; then echo -e "${DIM}Youtrack Service: ${ORANGE}service youtrack start"${NC}; fi
+        if [ "$start_upsource" != "yes" ]; then echo -e "${DIM}Upsource Service: ${ORANGE}service upsource start"${NC}; fi
+    fi
 }
 
-echo -n "Skip urls and ports input? [yes/NO]:"
+echo -ne "${BLUE}Skip urls and ports input? ${ORANGE}[yes/NO]:${NC}"
 read type
 
 if [ "$type" != "yes" ]; then
@@ -385,15 +408,23 @@ fi
 
 print_params
 
-echo -n "Skip installation of OpenJDK? [yes|no]"
+echo -e "${BLUE}Skip installation of OpenJDK? ${ORANGE}[yes|no]:${NC}"
 read type
 if [ "$type" != "yes" ]; then install_java; fi
 
-echo -n "Skip Download of Services? [yes|no]"
+echo -e "${BLUE}Skip Download of Services? ${ORANGE}[yes|no]:${NC}"
 read type
 if [ "$type" != "yes" ]; then download_services; fi
 
-echo -n "Skip boot scripts installation and configuration? [yes/no]:"
+echo -e "${BLUE}Skip nginx installation and configuration? ${ORANGE}[yes/no]:${NC}"
+read type
+if [ "$type" != "yes" ]; then install_nginx; fi
+
+echo -e "${BLUE}Skip cron job installation and configuration? ${ORANGE}[yes/no]:${NC}"
+read type
+if [ "$type" != "yes" ]; then install_cronjob; fi
+
+echo -e "${BLUE}Skip boot scripts installation and configuration? ${ORANGE}[yes/no]:${NC}"
 read type
 
 if [ "$type" != "yes" ]; then
@@ -407,16 +438,14 @@ if [ "$type" != "yes" ]; then
     service upsource stop
     service youtrack stop
     service hub stop
+
+    echo -e "${BLUE}Skip services initialization and configuration? ${ORANGE}[yes/no]:${NC}"
+    read type
+    if [ "$type" != "yes" ]; then config_services "initd_created"; fi
+
+    exit 0
 fi
 
-echo -n "Skip nginx installation and configuration? [yes/no]:"
+echo -e "${BLUE}Skip services initialization and configuration? ${ORANGE}[yes/no]:${NC}"
 read type
-if [ "$type" != "yes" ]; then install_nginx; fi
-
-echo -n "Skip cron job installation and configuration? [yes/no]:"
-read type
-if [ "$type" != "yes" ]; then install_cronjob; fi
-
-echo -n "Skip services initialization and configuration? [yes/no]:"
-read type
-if [ "$type" != "yes" ]; then config_services; fi
+if [ "$type" != "yes" ]; then config_services ; fi
