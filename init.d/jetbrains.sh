@@ -375,6 +375,39 @@ config_services() {
     fi
 }
 
+config_swapfile() {
+    echo -e "${ORANGE}Configuring swapfile...${NC}"
+    fallocate -l 1G /swapfile
+    chmod 600 /swapfile
+    mkswap /swapfile
+    swapon /swapfile
+    swapon -s
+
+    echo "/swapfile   none    swap    sw    0   0" >> /etc/fstab
+
+    cp /usr/jetbrains/hub/conf/hub.jvmoptions.dist /usr/jetbrains/hub/conf/hub.jvmoptions
+    echo "-Xmx1g" >> /usr/jetbrains/hub/conf/hub.jvmoptions
+    echo "-XX:MaxPermSize=250m" >> /usr/jetbrains/hub/conf/hub.jvmoptions
+    echo "-Xmx1024m" >> /usr/jetbrains/hub/conf/hub.jvmoptions
+    echo "-Djava.awt.headless=true" >> /usr/jetbrains/hub/conf/hub.jvmoptions
+    cp /usr/jetbrains/youtrack/conf/youtrack.jvmoptions.dist /usr/jetbrains/youtrack/conf/youtrack.jvmoptions
+    echo "-Xmx1g" >> /usr/jetbrains/youtrack/conf/youtrack.jvmoptions
+    echo "-XX:MaxPermSize=250m" >> /usr/jetbrains/youtrack/conf/youtrack.jvmoptions
+    echo "-Xmx1024m" >> /usr/jetbrains/youtrack/conf/youtrack.jvmoptions
+    echo "-Djava.awt.headless=true" >> /usr/jetbrains/youtrack/conf/youtrack.jvmoptions
+    cp /usr/jetbrains/upsource/conf/upsource.jvmoptions.dist /usr/jetbrains/upsource/conf/upsource.jvmoptions
+    echo "-Xmx1g" >> /usr/jetbrains/upsource/conf/upsource.jvmoptions
+    echo "-XX:MaxPermSize=250m" >> /usr/jetbrains/upsource/conf/upsource.jvmoptions
+    echo "-Xmx1024m" >> /usr/jetbrains/upsource/conf/upsource.jvmoptions
+    echo "-Djava.awt.headless=true" >> /usr/jetbrains/upsource/conf/upsource.jvmoptions
+
+    echo -e "${NC}${DIM}Swapfile configuration complete.${NC}"
+}
+
+echo -e "${BLUE}Skip configuration of swapfile? ${ORANGE}[yes/NO]:${NC}"
+read type
+if [ "$type" != "yes" ]; then config_swapfile ; fi
+
 echo -ne "${BLUE}Skip urls and ports input? ${ORANGE}[yes/NO]:${NC}"
 read type
 
@@ -440,9 +473,12 @@ if [ "$type" != "yes" ]; then
     read type
     if [ "$type" != "yes" ]; then config_services "initd_created"; fi
 
+    reboot
     exit 0
 fi
 
 echo -e "${BLUE}Skip services initialization and configuration? ${ORANGE}[yes/NO]:${NC}"
 read type
 if [ "$type" != "yes" ]; then config_services ; fi
+
+reboot
