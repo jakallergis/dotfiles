@@ -188,6 +188,13 @@ make_initd() {
     echo -e "${ORANGE}Making init.d for $1...${NC}"
     wget -qq "https://raw.githubusercontent.com/jakallergis/dotfiles/master/scripts/init.d/${1}" -O /etc/init.d/$1
     chmod +x /etc/init.d/$1
+
+    echo -e "${NC}${DIM}Updating default service script for $1...${NC}"
+    update-rc.d $1 defaults
+    if [ "$1" != "hub" ]; then
+        echo -e "${NC}${DIM}Disabling services scripts for $1...${NC}"
+        update-rc.d $1 disable
+    fi
 }
 
 install_nginx() {
@@ -410,15 +417,6 @@ if [ "$type" != "yes" ]; then
     make_initd youtrack
     echo
     make_initd upsource
-
-    echo -e "${NC}${DIM}Updating default services scripts...${NC}"
-    update-rc.d hub defaults
-    update-rc.d youtrack defaults
-    update-rc.d upsource defaults
-
-    echo -e "${NC}${DIM}Disabling services scripts for Youtrack an Upsource...${NC}"
-    update-rc.d youtrack disable
-    update-rc.d upsource disable
 
     echo -e "${NC}${DIM}Stopping services...${NC}"
     service upsource stop
