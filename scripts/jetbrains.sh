@@ -11,7 +11,7 @@ echo
 echo -e "${BLUE}Updating Packages and installing prerequisites...${NC}"
 
 apt-get -qq update
-apt-get -qq install mc htop git unzip wget curl -y
+apt-get -qq install mc htop git unzip wget curl -y > /dev/null 2>&1
 
 echo
 echo -e "${ORANGE}====================================================="
@@ -404,10 +404,6 @@ config_swapfile() {
     echo -e "${NC}${DIM}Swapfile configuration complete.${NC}"
 }
 
-echo -e "${BLUE}Skip configuration of swapfile? ${ORANGE}[yes/NO]:${NC}"
-read type
-if [ "$type" != "yes" ]; then config_swapfile ; fi
-
 echo -ne "${BLUE}Skip urls and ports input? ${ORANGE}[yes/NO]:${NC}"
 read type
 
@@ -473,6 +469,10 @@ if [ "$type" != "yes" ]; then
     read type
     if [ "$type" != "yes" ]; then config_services "initd_created"; fi
 
+    echo -e "${BLUE}Skip configuration of swapfile? ${ORANGE}[yes/NO]:${NC}"
+    read type
+    if [ "$type" != "yes" ]; then config_swapfile ; fi
+
 
     echo -e "${BLUE}Skip system reboot? ${ORANGE}[YES/no]:${NC}"
     read type
@@ -483,6 +483,10 @@ fi
 echo -e "${BLUE}Skip services initialization and configuration? ${ORANGE}[yes/NO]:${NC}"
 read type
 if [ "$type" != "yes" ]; then config_services ; fi
+
+echo -e "${BLUE}Skip configuration of swapfile? ${ORANGE}[yes/NO]:${NC}"
+read type
+if [ "$type" != "yes" ]; then config_swapfile ; fi
 
 echo -e "${BLUE}Skip system reboot? ${ORANGE}[YES/no]:${NC}"
 read type
