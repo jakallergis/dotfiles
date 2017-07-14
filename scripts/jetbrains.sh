@@ -36,8 +36,6 @@ echo -e "read the first https://www.jetbrains.com/upsource/help/2.0/prerequisite
 echo -e "install into /usr/jetbrains/upsource/"
 echo -e "${ORANGE}=====================================${NC}"
 echo
-
-echo -e "${ORANGE}=====================================${NC}"
 echo "In order to continue installing we need to set a few properties for nginx..."
 echo
 
@@ -116,14 +114,14 @@ check_param() {
 print_params() {
 	echo -e "${ORANGE}=================${NC}"
 	echo
-	echo -e "${NC}${DIM}Base domain url: ${BLUE}${base_domain}${NC}"
-	echo -e "${NC}${DIM}Hub domain url: ${BLUE}${hub_domain}${NC}"
-	echo -e "${NC}${DIM}hub port: ${BLUE}${hub_port}${NC}"
-	echo -e "${NC}${DIM}Youtrack domain url: ${BLUE}${yt_domain}${NC}"
-	echo -e "${NC}${DIM}Youtrack port: ${BLUE}${yt_port}${NC}"
-	echo -e "${NC}${DIM}Upsource domain url: ${BLUE}${us_domain}${NC}"
-	echo -e "${NC}${DIM}Upsource port: ${BLUE}${us_port}${NC}"
-	echo -e "${NC}${DIM}Cron email: ${BLUE}${cron_email}${NC}"
+	echo -e "${NC}${DIM}Base domain url: ${ORANGE}${base_domain}${NC}"
+	echo -e "${NC}${DIM}Hub domain url: ${ORANGE}${hub_domain}${NC}"
+	echo -e "${NC}${DIM}hub port: ${ORANGE}${hub_port}${NC}"
+	echo -e "${NC}${DIM}Youtrack domain url: ${ORANGE}${yt_domain}${NC}"
+	echo -e "${NC}${DIM}Youtrack port: ${ORANGE}${yt_port}${NC}"
+	echo -e "${NC}${DIM}Upsource domain url: ${ORANGE}${us_domain}${NC}"
+	echo -e "${NC}${DIM}Upsource port: ${ORANGE}${us_port}${NC}"
+	echo -e "${NC}${DIM}Cron email: ${ORANGE}${cron_email}${NC}"
 	echo
 	echo -e "${ORANGE}=================${NC}"
 }
@@ -419,7 +417,6 @@ if [ "$type" != "yes" ]; then
   ask_param us_port
   check_param us_port ${us_port}
   ask_param cron_email
-  if [ "${cron_email}" != "" ]; then echo "${us_port}"; fi
   echo -e "${NC}"
 fi
 
