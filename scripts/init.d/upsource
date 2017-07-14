@@ -12,7 +12,7 @@
 name=`basename $0`
 
 dir="/usr/jetbrains/$name/bin/"
-cmd="$name.sh"
+cmd="./$name.sh"
 user="root"
 
 pid_file="/var/run/$name.pid"
