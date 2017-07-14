@@ -57,7 +57,7 @@ echo -e "${ORANGE}Debian codename: ${RED}${code}${NC}"
 echo
 
 mkdir -p /var/tmp
-pushd /var/tmp
+pushd /var/tmp > /dev/null 2>&1
 
 ask_param () {
     if [ "$1" == "base_domain" ]; then
@@ -408,38 +408,33 @@ echo -ne "${BLUE}Skip urls and ports input? ${ORANGE}[yes/NO]:${NC}"
 read type
 
 if [ "$type" != "yes" ]; then
+  echo -e "${ORANGE}"
   ask_param base_domain
   check_param base_domain ${base_domain}
-  echo ${base_domain}
   ask_param hub_domain
   check_param hub_domain ${hub_domain}
-  echo "${hub_domain}"
   ask_param hub_port
   check_param hub_port ${hub_port}
-  echo "${hub_port}"
   ask_param yt_domain
   check_param yt_domain ${yt_domain}
-  echo "${yt_domain}"
   ask_param yt_port
   check_param yt_port ${yt_port}
-  echo "${yt_port}"
   ask_param us_domain
   check_param us_domain ${us_domain}
-  echo "${us_domain}"
   ask_param us_port
   check_param us_port ${us_port}
-  echo "${us_port}"
   ask_param cron_email
   if [ "${cron_email}" != "" ]; then echo "${us_port}"; fi
+  echo -e "${NC}"
 fi
 
 print_params
 
-echo -e "${BLUE}Skip installation of OpenJDK? ${ORANGE}[yes|NO]:${NC}"
+echo -e "${BLUE}Skip installation of OpenJDK? ${ORANGE}[yes/NO]:${NC}"
 read type
 if [ "$type" != "yes" ]; then install_java; fi
 
-echo -e "${BLUE}Skip Download of Services? ${ORANGE}[yes|NO]:${NC}"
+echo -e "${BLUE}Skip Download of Services? ${ORANGE}[yes/NO]:${NC}"
 read type
 if [ "$type" != "yes" ]; then download_services; fi
 
@@ -469,14 +464,14 @@ if [ "$type" != "yes" ]; then
     read type
     if [ "$type" != "yes" ]; then config_services "initd_created"; fi
 
+    echo
     echo -e "${BLUE}Skip configuration of swapfile? ${ORANGE}[yes/NO]:${NC}"
     read type
     if [ "$type" != "yes" ]; then config_swapfile ; fi
 
-
     echo -e "${BLUE}Skip system reboot? ${ORANGE}[YES/no]:${NC}"
     read type
-    if [ "$type" != "no" ]; then reboot; fi
+    if [ "$type" == "no" ]; then reboot; fi
     exit 0
 fi
 
@@ -490,4 +485,4 @@ if [ "$type" != "yes" ]; then config_swapfile ; fi
 
 echo -e "${BLUE}Skip system reboot? ${ORANGE}[YES/no]:${NC}"
 read type
-if [ "$type" != "no" ]; then reboot; fi
+if [ "$type" == "no" ]; then reboot; fi
