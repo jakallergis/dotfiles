@@ -190,10 +190,11 @@ make_initd() {
     chmod +x /etc/init.d/$1
 
     echo -e "${NC}${DIM}Updating default service script for $1...${NC}"
-    update-rc.d $1 defaults
+    update-rc.d $1 remove > /dev/null 2>&1
+    update-rc.d $1 defaults > /dev/null 2>&1
     if [ "$1" != "hub" ]; then
         echo -e "${NC}${DIM}Disabling services scripts for $1...${NC}"
-        update-rc.d $1 disable
+        update-rc.d $1 disable > /dev/null 2>&1
     fi
 }
 
