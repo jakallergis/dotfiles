@@ -5,7 +5,7 @@ RED='\033[0;31m'
 ORANGE='\033[0;33m'
 BLUE='\033[0;34m'
 GREEN='\033[0;32m'
-NC='\033[0m' # No Color
+NC='\033[0m' # NO Color
 
 echo
 echo -e "${BLUE}Updating Packages and installing prerequisites...${NC}"
@@ -129,7 +129,7 @@ print_params() {
 }
 
 install_java() {
-    echo -ne "${BLUE}Version of openJDK JRE to Install ${NC}${DIM}(Default: openjdk-${ORANGE}7${BLUE}-jre) ${ORANGE}[7/8]${BLUE}:${NC}"
+    echo -ne "${BLUE}Version of openJDK JRE to Install ${NC}${DIM}(Default: openjdk-${ORANGE}7${NC}${DIM}-jre) ${ORANGE}[7/8]${BLUE}:${NC}"
     read version_to_install
 
     if [ "$version_to_install" == 8 ]; then
@@ -143,8 +143,8 @@ install_java() {
     echo
 
     add-apt-repository ppa:openjdk-r/ppa -y > /dev/null 2>&1
-    apt-get -qq update
-    apt-get -qq install openjdk-${version_to_install}-jre -y
+    apt-get -qq update > /dev/null 2>&1
+    apt-get -qq install openjdk-${version_to_install}-jre -y > /dev/null 2>&1
 
     echo
     echo -e "${NC}${DIM}Java was successfully Installed${NC}"
@@ -351,15 +351,15 @@ config_services() {
     echo =e "${NC}"
 
     if [ "$1" == "initd_created" ]; then
-        echo -e "${BLUE}Start Hub Service? ${ORANGE}[yes/no]:${NC}"
+        echo -e "${BLUE}Start Hub Service? ${ORANGE}[yes/NO]:${NC}"
         read start_hub
         if [ "$start_hub" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}" else service hub start; fi
 
-        echo -e "${BLUE}Start Youtrack Service? ${ORANGE}[yes/no]:${NC}"
+        echo -e "${BLUE}Start Youtrack Service? ${ORANGE}[yes/NO]:${NC}"
         read start_youtrack
         if [ "$start_youtrack" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}" else service youtrack start; fi
 
-        echo -e "${BLUE}Start Upsource Service? ${ORANGE}[yes/no]:${NC}"
+        echo -e "${BLUE}Start Upsource Service? ${ORANGE}[yes/NO]:${NC}"
         read start_upsource
         if [ "$start_upsource" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}" else service upsource start; fi
 
@@ -408,23 +408,23 @@ fi
 
 print_params
 
-echo -e "${BLUE}Skip installation of OpenJDK? ${ORANGE}[yes|no]:${NC}"
+echo -e "${BLUE}Skip installation of OpenJDK? ${ORANGE}[yes|NO]:${NC}"
 read type
 if [ "$type" != "yes" ]; then install_java; fi
 
-echo -e "${BLUE}Skip Download of Services? ${ORANGE}[yes|no]:${NC}"
+echo -e "${BLUE}Skip Download of Services? ${ORANGE}[yes|NO]:${NC}"
 read type
 if [ "$type" != "yes" ]; then download_services; fi
 
-echo -e "${BLUE}Skip nginx installation and configuration? ${ORANGE}[yes/no]:${NC}"
+echo -e "${BLUE}Skip nginx installation and configuration? ${ORANGE}[yes/NO]:${NC}"
 read type
 if [ "$type" != "yes" ]; then install_nginx; fi
 
-echo -e "${BLUE}Skip cron job installation and configuration? ${ORANGE}[yes/no]:${NC}"
+echo -e "${BLUE}Skip cron job installation and configuration? ${ORANGE}[yes/NO]:${NC}"
 read type
 if [ "$type" != "yes" ]; then install_cronjob; fi
 
-echo -e "${BLUE}Skip boot scripts installation and configuration? ${ORANGE}[yes/no]:${NC}"
+echo -e "${BLUE}Skip boot scripts installation and configuration? ${ORANGE}[yes/NO]:${NC}"
 read type
 
 if [ "$type" != "yes" ]; then
@@ -439,13 +439,13 @@ if [ "$type" != "yes" ]; then
     service youtrack stop
     service hub stop
 
-    echo -e "${BLUE}Skip services initialization and configuration? ${ORANGE}[yes/no]:${NC}"
+    echo -e "${BLUE}Skip services initialization and configuration? ${ORANGE}[yes/NO]:${NC}"
     read type
     if [ "$type" != "yes" ]; then config_services "initd_created"; fi
 
     exit 0
 fi
 
-echo -e "${BLUE}Skip services initialization and configuration? ${ORANGE}[yes/no]:${NC}"
+echo -e "${BLUE}Skip services initialization and configuration? ${ORANGE}[yes/NO]:${NC}"
 read type
 if [ "$type" != "yes" ]; then config_services ; fi
