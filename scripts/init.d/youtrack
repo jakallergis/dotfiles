@@ -1,12 +1,12 @@
 #!/bin/sh
 ### BEGIN INIT INFO
-# Provides:          upsource
+# Provides:          youtrack
 # Required-Start:    hub $local_fs $remote_fs $network $syslog $named
 # Required-Stop:     hub $local_fs $remote_fs $network $syslog $named
 # Default-Start:     2 3 4 5
 # Default-Stop:      S 0 1 6
-# Short-Description: Start Jetbrains Upsource at boot time
-# Description:       Enable Upsource service provided by Jetbrains.
+# Short-Description: Start Jetbrains Youtrack at boot time
+# Description:       Enable Youtrack service provided by Jetbrains.
 ### END INIT INFO
 
 name=`basename $0`
