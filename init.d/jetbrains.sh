@@ -473,7 +473,10 @@ if [ "$type" != "yes" ]; then
     read type
     if [ "$type" != "yes" ]; then config_services "initd_created"; fi
 
-    reboot
+
+    echo -e "${BLUE}Skip system reboot? ${ORANGE}[YES/no]:${NC}"
+    read type
+    if [ "$type" != "no" ]; then reboot; fi
     exit 0
 fi
 
@@ -481,4 +484,6 @@ echo -e "${BLUE}Skip services initialization and configuration? ${ORANGE}[yes/NO
 read type
 if [ "$type" != "yes" ]; then config_services ; fi
 
-reboot
+echo -e "${BLUE}Skip system reboot? ${ORANGE}[YES/no]:${NC}"
+read type
+if [ "$type" != "no" ]; then reboot; fi
