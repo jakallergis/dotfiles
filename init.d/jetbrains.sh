@@ -344,7 +344,7 @@ config_services() {
     echo -e "${ORANGE}Configuring Upsource...${NC}${DIM}"
     /usr/jetbrains/upsource/bin/upsource.sh configure --listen-port ${us_port} --base-url http://${us_domain}
 
-    echo =e "${NC}"
+    echo -e "${NC}"
 
     if [ "$1" == "initd_created" ]; then
         echo -e "${BLUE}Start Hub Service? ${ORANGE}[yes/NO]:${NC}"
@@ -360,14 +360,14 @@ config_services() {
         if [ "$start_upsource" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}"; else service upsource start; fi
 
         echo
-        echo -e "${ORANGE}After manually starting the services the services will be accessible at:${NC}"
+        echo -e "${NC}After manually starting the services the services will be accessible at:${NC}"
         echo -e "${BLUE}Hub: ${ORANGE}${hub_domain}${NC}"
         echo -e "${BLUE}Youtrack: ${ORANGE}${yt_domain}${NC}"
         echo -e "${BLUE}Upsource: ${ORANGE}${us_domain}${NC}"
 
         echo
         if [ "$start_hub" != "yes" ] || [ "$start_youtrack" != "yes" ] || [ "$start_upsource" != "yes" ]; then
-            echo -e "${ORANGE}To start each service run:${NC}"
+            echo -e "${NC}To start each service run:${NC}"
         fi
         if [ "$start_hub" != "yes" ]; then echo -e "${NC}${DIM}Hub Service: ${ORANGE}service hub start"${NC}; fi
         if [ "$start_youtrack" != "yes" ]; then echo -e "${NC}${DIM}Youtrack Service: ${ORANGE}service youtrack start"${NC}; fi
