@@ -61,12 +61,12 @@ pushd /var/tmp
 
 ask_param () {
     if [ "$1" == "base_domain" ]; then
-        echo -ne "${BLUE}Base domain url ${NC}${DIM}(Default: http://localhost): ${NC}"
+        echo -ne "${BLUE}Base domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
         read base_domain
     fi
 
     if [ "$1" == "hub_domain" ]; then
-        echo -ne "${BLUE}Hub domain url: ${NC}${DIM}(Default: http://localhost): ${NC}"
+        echo -ne "${BLUE}Hub domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
         read hub_domain
     fi
 
@@ -76,7 +76,7 @@ ask_param () {
     fi
 
     if [ "$1" == "yt_domain" ]; then
-        echo -ne "${BLUE}Youtrack domain url: ${NC}${DIM}(Default: http://localhost): ${NC}"
+        echo -ne "${BLUE}Youtrack domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
         read yt_domain
     fi
 
@@ -86,12 +86,12 @@ ask_param () {
     fi
 
     if [ "$1" == "us_domain" ]; then
-        echo -ne "${BLUE}Upsource domain url: ${NC}${DIM}(Default: http://localhost): ${NC}"
+        echo -ne "${BLUE}Upsource domain url: ${NC}${DIM}(Default: http://localhost) ${NC}"
         read us_domain
     fi
 
     if [ "$1" == "us_port" ]; then
-        echo -ne "${BLUE}Upsource port: ${NC}${DIM}(Default: 8082): ${NC}"
+        echo -ne "${BLUE}Upsource port: ${NC}${DIM}(Default: 8082) ${NC}"
         read us_port
     fi
 
@@ -140,7 +140,6 @@ install_java() {
 
     echo
     echo -e "${ORANGE}Installing openJDK ${version_to_install} JRE...${NC}"
-    echo
 
     add-apt-repository ppa:openjdk-r/ppa -y > /dev/null 2>&1
     apt-get -qq update > /dev/null 2>&1
@@ -161,34 +160,33 @@ download_services() {
     echo -e "${ORANGE}Downloading Upsource...${NC}"
     wget -qq https://download.jetbrains.com/upsource/upsource-2017.2.2057.zip -O /usr/jetbrains/upsource/arch.zip
 
-    pushd /usr/jetbrains/hub
+    pushd /usr/jetbrains/hub > /dev/null 2>&1
     echo -e "${NC}${DIM}Exctracting Hub...${NC}"
     unzip -qq arch.zip
     mv hub-ring-bundle-2017.2.6307/* .
     rm -rf hub-ring-bundle-2017.2.6307
     chmod +x -R ../hub/
-    popd
+    popd > /dev/null 2>&1
 
-    pushd /usr/jetbrains/youtrack
+    pushd /usr/jetbrains/youtrack > /dev/null 2>&1
     echo -e "${NC}${DIM}Exctracting Youtrack...${NC}"
     unzip -qq arch.zip
     mv youtrack-2017.2.34480/* .
     rm -rf youtrack-2017.2.34480
     chmod +x -R ../youtrack/
-    popd
+    popd > /dev/null 2>&1
 
-    pushd /usr/jetbrains/upsource
+    pushd /usr/jetbrains/upsource > /dev/null 2>&1
     echo -e "${NC}${DIM}Exctracting Upsource...${NC}"
     unzip -qq arch.zip
     mv upsource-2017.2.2057/* .
     rm -rf upsource-2017.2.2057
     chmod +x -R ../upsource/
-    popd
-    popd
+    popd > /dev/null 2>&1
+    popd > /dev/null 2>&1
 }
 
 make_initd() {
-
   echo -e "${ORANGE}Making init.d for $1...${NC}"
 
   rq="hub "
@@ -237,9 +235,8 @@ EOF
 }
 
 install_nginx() {
-    echo
     echo -e "${ORANGE}Configure nginx...${NC}"
-    apt-get -qq install -t ${code}-backports nginx -y
+    apt-get -qq install -t ${code}-backports nginx -y > /dev/null 2>&1
 
     cat >./default<<EOF
 server {
@@ -336,7 +333,6 @@ EOF
 }
 
 config_services() {
-    echo
     echo -e "${ORANGE}Configuring Hub...${NC}${DIM}"
     /usr/jetbrains/hub/bin/hub.sh configure --listen-port ${hub_port} --base-url http://${hub_domain}
 
@@ -353,21 +349,23 @@ config_services() {
     if [ "$1" == "initd_created" ]; then
         echo -e "${BLUE}Start Hub Service? ${ORANGE}[yes/NO]:${NC}"
         read start_hub
-        if [ "$start_hub" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}" else service hub start; fi
+        if [ "$start_hub" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}"; else service hub start; fi
 
         echo -e "${BLUE}Start Youtrack Service? ${ORANGE}[yes/NO]:${NC}"
         read start_youtrack
-        if [ "$start_youtrack" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}" else service youtrack start; fi
+        if [ "$start_youtrack" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}"; else service youtrack start; fi
 
         echo -e "${BLUE}Start Upsource Service? ${ORANGE}[yes/NO]:${NC}"
         read start_upsource
-        if [ "$start_upsource" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}" else service upsource start; fi
+        if [ "$start_upsource" != "yes" ]; then echo -e "${NC}${DIM}Skipping Hub Service...${NC}"; else service upsource start; fi
 
+        echo
         echo -e "${ORANGE}After manually starting the services the services will be accessible at:${NC}"
         echo -e "${BLUE}Hub: ${ORANGE}${hub_domain}${NC}"
         echo -e "${BLUE}Youtrack: ${ORANGE}${yt_domain}${NC}"
         echo -e "${BLUE}Upsource: ${ORANGE}${us_domain}${NC}"
 
+        echo
         if [ "$start_hub" != "yes" ] || [ "$start_youtrack" != "yes" ] || [ "$start_upsource" != "yes" ]; then
             echo -e "${ORANGE}To start each service run:${NC}"
         fi
@@ -428,10 +426,9 @@ echo -e "${BLUE}Skip boot scripts installation and configuration? ${ORANGE}[yes/
 read type
 
 if [ "$type" != "yes" ]; then
-   echo
-    make_initd youtrack
-    echo
     make_initd hub
+    echo
+    make_initd youtrack
     echo
     make_initd upsource
 
