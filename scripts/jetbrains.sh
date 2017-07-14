@@ -433,9 +433,9 @@ if [ "$type" != "yes" ]; then
     read type
     if [ "$type" != "yes" ]; then config_swapfile ; fi
 
-    echo -e "${BLUE}Skip system reboot? ${ORANGE}[YES/no]:${NC}"
-    read type
-    if [ "$type" == "no" ]; then reboot; fi
+    echo -e "${BLUE}Skip system reboot? ${ORANGE}[yes/NO]:${NC}"
+        read type
+    if [ "$type" != "yes" ]; then reboot; fi
     exit 0
 fi
 
@@ -447,6 +447,6 @@ echo -e "${BLUE}Skip configuration of swapfile? ${ORANGE}[yes/NO]:${NC}"
 read type
 if [ "$type" != "yes" ]; then config_swapfile ; fi
 
-echo -e "${BLUE}Skip system reboot? ${ORANGE}[YES/no]:${NC}"
+echo -e "${BLUE}Skip system reboot? ${ORANGE}[yes/NO]:${NC}"
 read type
-if [ "$type" == "no" ]; then reboot; fi
+if [ "$type" != "yes" ]; then reboot; fi
