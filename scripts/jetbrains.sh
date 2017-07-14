@@ -185,46 +185,9 @@ download_services() {
 }
 
 make_initd() {
-  echo -e "${ORANGE}Making init.d for $1...${NC}"
-
-  rq="hub "
-  if [ "$1" == "hub" ]; then
-    rq=""
-  fi
-
-  cat >/etc/init.d/$1 <<EOF
-#! /bin/sh
-### BEGIN INIT INFO
-# Provides:          $1
-# Required-Start:    ${rq}\$local_fs \$remote_fs \$network \$syslog \$named
-# Required-Stop:     ${rq}\$local_fs \$remote_fs \$network \$syslog \$named
-# Default-Start:     2 3 4 5
-# Default-Stop:      S 0 1 6
-# Short-Description: initscript for $1
-# Description:       initscript for $1
-### END INIT INFO
-PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
-NAME=$1
-SCRIPT=/usr/jetbrains/\$NAME/bin/\$NAME.sh
-do_start() {
-  \$SCRIPT start soft
-}
-case "\$1" in
-  start)
-    do_start
-    ;;
-  stop|restart|status|run|rerun|help)
-    \$SCRIPT \$1 \$2
-    ;;
-  *)
-    echo "Usage: sudo /etc/init.d/$1 {start|stop|restart|status|run|rerun}" >&2
-    exit 1
-    ;;
-esac
-exit 0
-EOF
-
-  chmod +x /etc/init.d/$1
+    echo -e "${ORANGE}Making init.d for $1...${NC}"
+    wget -qq "https://raw.githubusercontent.com/jakallergis/dotfiles/master/scripts/init.d/${1}" -O /etc/init.d/$1
+    chmod +x /etc/init.d/$1
 }
 
 install_nginx() {
