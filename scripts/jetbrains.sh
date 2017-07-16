@@ -297,6 +297,15 @@ EOF
 }
 
 config_services() {
+    echo -e "${ORANGE}Installing rng-tools...${NC}${DIM}"
+    apt-get -qq install rng-tools -y > /dev/null 2>&1
+
+    echo -e "${ORANGE}Configuring RNG-tools for better random bits generation...${NC}${DIM}"
+    echo "HRNGDEVICE=/dev/urandom:" >> /etc/default/rng-tools
+
+    echo -e "${ORANGE}Starting the rng-tools daemon...${NC}${DIM}"
+    /etc/init.d/rng-tools start > /dev/null 2>&1
+
     echo -e "${ORANGE}Configuring Hub...${NC}${DIM}"
     /usr/jetbrains/hub/bin/hub.sh configure --listen-port ${hub_port} --base-url http://${hub_domain}
 
@@ -307,6 +316,10 @@ config_services() {
     echo -e "${NC}"
     echo -e "${ORANGE}Configuring Upsource...${NC}${DIM}"
     /usr/jetbrains/upsource/bin/upsource.sh configure --listen-port ${us_port} --base-url http://${us_domain}
+
+    echo 127.0.0.1 ${hub_domain} >> /etc/hosts
+    echo 127.0.0.1 ${yt_domain} >> /etc/hosts
+    echo 127.0.0.1 ${us_domain} >> /etc/hosts
 
     echo -e "${NC}"
 
