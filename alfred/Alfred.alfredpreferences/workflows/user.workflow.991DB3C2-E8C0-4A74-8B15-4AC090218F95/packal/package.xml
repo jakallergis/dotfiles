@@ -1,0 +1,8 @@
+<?xml version='1.0' encoding='UTF-8' ?>
+<workflow>
+  <name>Convert</name>
+  <version>2.6</version>
+  <bundle>net.deanishe.alfred-convert</bundle>
+  <updated>1497552557</updated>
+  <file>convert-2.6.alfredworkflow</file>
+</workflow>
