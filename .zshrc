@@ -113,6 +113,7 @@ alias zshc="vim ~/.zshrc"
 alias vimc="vim ~/.vimrc"
 alias omzshc="vim ~/.oh-my-zsh"
 alias getpath="print -l $path"
+alias k=kubectl
 
 # Functions and loaders
 
