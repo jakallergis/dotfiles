@@ -121,10 +121,10 @@ alias k=kubectl
 fpath=(~/.custom_zsh_functions $fpath)
 autoload -Uz zmv
 
-# export JAVA_HOME=$(/usr/libexec/java_home)
-# export ANDROID_HOME=${HOME}/Library/Android/Sdk
-# export PATH=${PATH}:${ANDROID_HOME}/tools
-# export PATH=${PATH}:${ANDROID_HOME}/platform-tools
+ export JAVA_HOME=$(/usr/libexec/java_home)
+export ANDROID_HOME=${HOME}/Library/Android/sdk
+export PATH=${PATH}:${ANDROID_HOME}/tools
+export PATH=${PATH}:${ANDROID_HOME}/platform-tools
 
 NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
