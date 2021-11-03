@@ -1,15 +1,21 @@
-<scheme name="Darcula" version="142" parent_scheme="Darcula">
+<scheme name="Jakallergis Dark Blue" version="142" parent_scheme="Darcula">
   <option name="FONT_SCALE" value="1.0" />
   <metaInfo>
-    <property name="created">2020-12-01T14:50:35</property>
+    <property name="created">2021-11-03T10:14:46</property>
     <property name="ide">WebStorm</property>
-    <property name="ideVersion">2020.3.0.0</property>
-    <property name="modified">2020-12-01T14:51:08</property>
-    <property name="originalScheme">_@user_Darcula</property>
+    <property name="ideVersion">2021.2.3.0.0</property>
+    <property name="modified">2021-11-03T10:14:51</property>
+    <property name="originalScheme">Jakallergis Dark Blue</property>
   </metaInfo>
   <option name="LINE_SPACING" value="1.1" />
-  <option name="EDITOR_FONT_SIZE" value="15" />
-  <option name="EDITOR_FONT_NAME" value="JetBrains Mono" />
+  <font>
+    <option name="EDITOR_FONT_NAME" value="JetBrains Mono" />
+    <option name="EDITOR_FONT_SIZE" value="15" />
+  </font>
+  <font>
+    <option name="EDITOR_FONT_NAME" value="Fira Code" />
+    <option name="EDITOR_FONT_SIZE" value="15" />
+  </font>
   <option name="EDITOR_LIGATURES" value="true" />
   <option name="CONSOLE_FONT_NAME" value="Monospaced" />
   <option name="CONSOLE_FONT_SIZE" value="12" />
@@ -36,7 +42,7 @@
     <option name="FILESTATUS_UNKNOWN" value="f77669" />
     <option name="FILESTATUS_addedOutside" value="c3e88d" />
     <option name="FILESTATUS_modifiedOutside" value="82aaff" />
-    <option name="GUTTER_BACKGROUND" value="2a2b2c" />
+    <option name="GUTTER_BACKGROUND" value="c0e15" />
     <option name="INDENT_GUIDE" value="32424a" />
     <option name="NOTIFICATION_BACKGROUND" value="263238" />
     <option name="RIGHT_MARGIN_COLOR" value="437fd3" />
@@ -78504,7 +78510,7 @@
     <option name="TEXT">
       <value>
         <option name="FOREGROUND" value="a9b7c6" />
-        <option name="BACKGROUND" value="1f2021" />
+        <option name="BACKGROUND" value="f111a" />
         <option name="EFFECT_TYPE" value="5" />
       </value>
     </option>

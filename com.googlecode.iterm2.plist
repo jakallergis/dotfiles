@@ -499,21 +499,21 @@
 			<array>
 				<dict>
 					<key>characters</key>
-					<string>`</string>
+					<string></string>
 					<key>charactersIgnoringModifiers</key>
-					<string>~</string>
+					<string></string>
 					<key>keyCode</key>
-					<integer>50</integer>
+					<integer>53</integer>
 					<key>modifiers</key>
 					<integer>393216</integer>
 				</dict>
 			</array>
 			<key>HotKey Characters</key>
-			<string>0</string>
+			<string></string>
 			<key>HotKey Characters Ignoring Modifiers</key>
-			<string>§</string>
+			<string></string>
 			<key>HotKey Key Code</key>
-			<integer>10</integer>
+			<integer>53</integer>
 			<key>HotKey Modifier Activation</key>
 			<integer>0</integer>
 			<key>HotKey Modifier Flags</key>
@@ -1610,8 +1610,6 @@
 			<string>kNextWindowPointerAction</string>
 		</dict>
 	</dict>
-	<key>PreventEscapeSequenceFromClearingHistory</key>
-	<false/>
 	<key>ShowPaneTitles</key>
 	<false/>
 	<key>SoundForEsc</key>

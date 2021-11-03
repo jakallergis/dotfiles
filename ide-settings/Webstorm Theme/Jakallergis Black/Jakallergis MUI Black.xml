@@ -1,0 +1,25 @@
+<mtTheme>
+  <id>Jakallergis_MUI_Black</id>
+  <editorColorsScheme>Jakallergis MUI Black</editorColorsScheme>
+  <dark>true</dark>
+  <name>Jakallergis MUI Black</name>
+  <colors>
+    <color id="background" value="000000ff"/>
+    <color id="foreground" value="9396a3ff"/>
+    <color id="text" value="5a617bff"/>
+    <color id="highlight" value="1f222dff"/>
+    <color id="selectionBackground" value="222533ff"/>
+    <color id="selectionForeground" value="ffffffff"/>
+    <color id="button" value="191a21ff"/>
+    <color id="secondaryBackground" value="181a1fff"/>
+    <color id="disabled" value="464b5dff"/>
+    <color id="contrast" value="0c0e15ff"/>
+    <color id="tableSelected" value="1a1c25ff"/>
+    <color id="secondBorder" value="181a1fff"/>
+    <color id="treeSelection" value="717cb43f"/>
+    <color id="notifications" value="090b10ff"/>
+    <color id="accent" value="ffc600ff"/>
+    <color id="excluded" value="12151fff"/>
+  </colors>
+  <themeId>Jakallergis_MUI_Black</themeId>
+</mtTheme>
