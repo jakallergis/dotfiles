@@ -814,7 +814,7 @@
 	<key>description</key>
 	<string>Package Repo Search</string>
 	<key>disabled</key>
-	<false/>
+	<true/>
 	<key>name</key>
 	<string>Package Managers v3.16.0</string>
 	<key>objects</key>
