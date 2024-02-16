@@ -118,3 +118,4 @@ export NVM_DIR="$HOME/.nvm"
 export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
 
 eval "$(rbenv init -)"
+eval "$(/opt/homebrew/bin/brew shellenv)"
