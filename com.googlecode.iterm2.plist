@@ -219,8 +219,6 @@
 	</dict>
 	<key>Default Bookmark Guid</key>
 	<string>8E421228-2AF3-448D-90AB-D971B6F684DD</string>
-	<key>EnableAPIServer</key>
-	<true/>
 	<key>HapticFeedbackForEsc</key>
 	<false/>
 	<key>HideFromDockAndAppSwitcher</key>
@@ -239,6 +237,8 @@
 	<array>
 		<dict>
 			<key>ASCII Anti Aliased</key>
+			<true/>
+			<key>ASCII Ligatures</key>
 			<true/>
 			<key>Ambiguous Double Width</key>
 			<false/>
@@ -467,9 +467,9 @@
 				<real>0.0</real>
 			</dict>
 			<key>Custom Command</key>
-			<string>Yes</string>
+			<string>No</string>
 			<key>Custom Directory</key>
-			<string>Recycle</string>
+			<string>No</string>
 			<key>Default Bookmark</key>
 			<string>No</string>
 			<key>Description</key>
@@ -501,23 +501,13 @@
 			<array>
 				<dict>
 					<key>characters</key>
-					<string></string>
+					<string>`</string>
 					<key>charactersIgnoringModifiers</key>
-					<string></string>
+					<string>~</string>
 					<key>keyCode</key>
-					<integer>53</integer>
+					<integer>50</integer>
 					<key>modifiers</key>
 					<integer>393216</integer>
-				</dict>
-				<dict>
-					<key>characters</key>
-					<string>0</string>
-					<key>charactersIgnoringModifiers</key>
-					<string>§</string>
-					<key>keyCode</key>
-					<integer>10</integer>
-					<key>modifiers</key>
-					<integer>262144</integer>
 				</dict>
 			</array>
 			<key>HotKey Characters</key>
@@ -533,7 +523,7 @@
 			<key>HotKey Window Animates</key>
 			<true/>
 			<key>HotKey Window AutoHides</key>
-			<true/>
+			<false/>
 			<key>HotKey Window Dock Click Action</key>
 			<integer>0</integer>
 			<key>HotKey Window Floats</key>
@@ -542,8 +532,6 @@
 			<false/>
 			<key>Idle Code</key>
 			<integer>0</integer>
-			<key>Initial Text</key>
-			<string></string>
 			<key>Jobs to Ignore</key>
 			<array>
 				<string>rlogin</string>
@@ -1017,7 +1005,7 @@
 			<key>Non-ASCII Anti Aliased</key>
 			<true/>
 			<key>Normal Font</key>
-			<string>MesloLGLForPowerline-Regular 12</string>
+			<string>JetBrainsMono-Regular 14</string>
 			<key>Only The Default BG Color Uses Transparency</key>
 			<true/>
 			<key>Option Key Sends</key>
@@ -1050,6 +1038,15 @@
 				<key>Red Component</key>
 				<real>0.0</real>
 			</dict>
+			<key>Semantic History</key>
+			<dict>
+				<key>action</key>
+				<string>command</string>
+				<key>editor</key>
+				<string>com.github.atom</string>
+				<key>text</key>
+				<string>/usr/local/bin/webstorm \1</string>
+			</dict>
 			<key>Send Code When Idle</key>
 			<false/>
 			<key>Shortcut</key>
@@ -1065,7 +1062,7 @@
 			<key>Terminal Type</key>
 			<string>xterm-256color</string>
 			<key>Transparency</key>
-			<real>0.16361040609137056</real>
+			<real>0.19395708577887058</real>
 			<key>Unlimited Scrollback</key>
 			<false/>
 			<key>Use Bold Font</key>
@@ -1785,8 +1782,6 @@
 			<string>kNextWindowPointerAction</string>
 		</dict>
 	</dict>
-	<key>ShowFullScreenTabBar</key>
-	<false/>
 	<key>ShowPaneTitles</key>
 	<false/>
 	<key>SoundForEsc</key>

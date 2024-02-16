@@ -29,7 +29,7 @@ DEFAULT_USER=`whoami`
 # DISABLE_AUTO_UPDATE="true"
 
 # Uncomment the following line to change how often to auto-update (in days).
-# export UPDATE_ZSH_DAYS=13
+ export UPDATE_ZSH_DAYS=1
 
 # Uncomment the following line to disable colors in ls.
 # DISABLE_LS_COLORS="true"
@@ -38,10 +38,10 @@ DEFAULT_USER=`whoami`
 # DISABLE_AUTO_TITLE="true"
 
 # Uncomment the following line to enable command auto-correction.
-# ENABLE_CORRECTION="true"
+ ENABLE_CORRECTION="true"
 
 # Uncomment the following line to display red dots whilst waiting for completion.
-# COMPLETION_WAITING_DOTS="true"
+ COMPLETION_WAITING_DOTS="true"
 
 # Uncomment the following line if you want to disable marking untracked files
 # under VCS as dirty. This makes repository status check for large repositories
@@ -90,18 +90,8 @@ source $ZSH/oh-my-zsh.sh
 # For a full list of active aliases, run `alias`.
 
 # Example aliases
-# alias zshconfig="mate ~/.zshrc"
-# alias ohmyzsh="mate ~/.oh-my-zsh"
-alias ud="sudo apt-get update"
-alias ug="sudo apt-get upgrade"
-alias ui="sudo apt-get install"
-alias uv="apt-cache policy"
 alias gs="git status"
-alias gadd="git add"
 alias gc="git commit -m"
-alias gcl="git clone"
-alias gsh="git push"
-alias gll="git pull"
 alias g="git"
 alias ls="ls -F"
 alias la="ls -AF"
@@ -121,13 +111,10 @@ alias k=kubectl
 fpath=(~/.custom_zsh_functions $fpath)
 autoload -Uz zmv
 
- export JAVA_HOME=$(/usr/libexec/java_home)
-export ANDROID_HOME=${HOME}/Library/Android/sdk
-export PATH=${PATH}:${ANDROID_HOME}/tools
-export PATH=${PATH}:${ANDROID_HOME}/platform-tools
-
-NVM_DIR="$HOME/.nvm"
+export NVM_DIR="$HOME/.nvm"
 [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm
 [ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion
 
 export PATH="$HOME/.yarn/bin:$HOME/.config/yarn/global/node_modules/.bin:$PATH"
+
+eval "$(rbenv init -)"
