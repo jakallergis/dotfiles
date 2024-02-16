@@ -8,7 +8,5 @@
 		<string>features.websearch.wiki.fallback</string>
 		<string>features.websearch.imdb.fallback</string>
 	</array>
-	<key>showContacts</key>
-	<false/>
 </dict>
 </plist>
