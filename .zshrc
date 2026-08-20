@@ -150,4 +150,6 @@ if command -v rbenv &>/dev/null; then
     eval "$(rbenv init -)"
 fi
 
-eval "$(/opt/homebrew/bin/brew shellenv)"
+if [ -d /opt/homebrew ]; then
+  eval "$(/opt/homebrew/bin/brew shellenv)"
+fi
