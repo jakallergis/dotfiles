@@ -1,2 +1,10 @@
 .DS_Store
 .idea
+
+# Machine-local shell config: this is where secrets belong.
+*.local
+
+# Anything that looks like credentials should never be committed.
+.env
+.env.*
+secrets/
