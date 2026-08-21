@@ -14,8 +14,9 @@ if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]
 fi
 
 # --- 2. Homebrew ------------------------------------------------------------
-# Before section 6 on purpose: pyenv and rbenv are installed by brew, so
-# `command -v pyenv` cannot find them until brew is on PATH.
+# Before sections 6 and 7 on purpose: a `command -v` cannot find a
+# brew-installed tool until brew is on PATH, and the block would quietly do
+# nothing. Defensive now that mise supplies everything probed below.
 for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbrew/bin/brew; do
   [[ -x $_brew ]] && eval "$($_brew shellenv)" && break
 done
@@ -24,16 +25,17 @@ unset _brew
 # --- 3. PATH ----------------------------------------------------------------
 typeset -U path PATH # zsh keeps $path free of duplicates for us
 
-export BUM_INSTALL="$HOME/.bum"
+# ~/.bun/bin is where `bun add -g` puts binaries (BUN_INSTALL defaults there)
+# whatever supplies the bun binary itself — so it stays on PATH even though
+# mise now installs bun. mise's shims are prepended later, so they still win.
 
 for _dir in \
   "$HOME/.local/bin" \
   "$HOME/.lmstudio/bin" \
+  "$HOME/.bun/bin" \
   "$HOME/.yarn/bin" \
   "$HOME/.config/yarn/global/node_modules/.bin" \
   "$HOME/.fzf/bin" \
-  "$BUM_INSTALL/bin" \
-  "$HOME/.bun/bin" \
   "$HOME/.druk/bin" \
   "$HOME/.atuin/bin"; do
   [[ -d $_dir ]] && path=("$_dir" $path)
@@ -103,44 +105,13 @@ autoload -Uz zmv
 # without this file growing. `g=git` comes from oh-my-zsh's git plugin.
 
 # --- 6. tool init -----------------------------------------------------------
-# nvm. Sourcing this is the slowest thing left in the file, and load-nvmrc forks
-# on every cd — that is the next thing to look at (mise).
-export NVM_DIR="$HOME/.nvm"
-[[ -s $NVM_DIR/nvm.sh ]] && source "$NVM_DIR/nvm.sh"
-[[ -s $NVM_DIR/bash_completion ]] && source "$NVM_DIR/bash_completion"
-
-if command -v nvm &>/dev/null; then
-  autoload -U add-zsh-hook
-
-  load-nvmrc() {
-    local nvmrc_path
-    nvmrc_path="$(nvm_find_nvmrc)"
-
-    if [ -n "$nvmrc_path" ]; then
-      local nvmrc_node_version
-      nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
-
-      if [ "$nvmrc_node_version" = "N/A" ]; then
-        nvm install
-      elif [ "$nvmrc_node_version" != "$(nvm version)" ]; then
-        nvm use
-      fi
-    elif [ -n "$(PWD=$OLDPWD nvm_find_nvmrc)" ] && [ "$(nvm version)" != "$(nvm version default)" ]; then
-      echo "Reverting to nvm default version"
-      nvm use default
-    fi
-  }
-
-  add-zsh-hook chpwd load-nvmrc
-  load-nvmrc
-fi
-
-export PYENV_ROOT="$HOME/.pyenv"
-[[ -d $PYENV_ROOT/bin ]] && path=("$PYENV_ROOT/bin" $path)
-# `pyenv init -` puts the shims on PATH itself, so there is nothing to add here.
-command -v pyenv &>/dev/null && eval "$(pyenv init - zsh)"
-
-command -v rbenv &>/dev/null && eval "$(rbenv init - zsh)"
+# mise: one version manager for node, bun and friends. Replaced nvm, whose
+# nvm.sh cost ~600ms per shell and whose load-nvmrc hook forked on every cd.
+#
+# mise ignores .nvmrc and .node-version unless told to — the setting defaults to
+# an empty list — and plenty of existing projects still use them.
+export MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS=node,python,ruby
+command -v mise &>/dev/null && eval "$(mise activate zsh)"
 
 # fzf must come BEFORE atuin: `fzf --zsh` binds Ctrl-R to its own history
 # widget, and the atuin block below deliberately takes that key back. Ctrl-T

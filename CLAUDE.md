@@ -62,18 +62,17 @@ wrong:
 | tool | how it is stopped |
 | --- | --- |
 | oh-my-zsh | `--unattended --keep-zshrc` (also stops its `exec zsh -l`, which would end the run) |
-| nvm | `PROFILE=/dev/null` |
-| bun / bum | `SHELL=none` — no flag exists; it forces the installer's "print instructions" branch. bun appends **unconditionally, with no dedup check** |
-| atuin | `ATUIN_NO_MODIFY_PATH=1` (`--no-modify-path` is deprecated). Also skips writing `~/.atuin/bin/env`, so `.zshrc` adds that bin dir itself |
 | druk | `--no-modify-path` |
-| fzf | `install --bin` |
-| zoxide | nothing needed — it writes no shell config |
 | p10k | its own `[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh` line, **verbatim**, so the wizard's grep finds it and stops adding a second copy |
+| mise | nothing needed — its installer only *prints* the activation line |
 
-Two more, found the hard way: bum's installer runs `tar -xvf` with no `-C`, so
-it must be run from a temp dir or it unpacks into this repo; and bum installs
-bun via bun's own installer, leaving `bum list` empty, so the step has to run
-`bum use <version>` explicitly for bum to actually manage anything.
+Most of this class of problem went away when mise took over tool installation:
+mise never touches shell config. The levers that used to be needed here, kept
+because they are easy to get wrong if a tool ever comes back on its own
+installer: nvm `PROFILE=/dev/null`; bun/bum `SHELL=none` (no flag exists, and
+bun appends **unconditionally with no dedup check**); atuin
+`ATUIN_NO_MODIFY_PATH=1`, which also skips writing `~/.atuin/bin/env`; fzf
+`install --bin`.
 
 The shell wiring those installers want to add belongs in `config/shared/.zshrc`
 or a drop-in — never in a step.
@@ -101,13 +100,15 @@ destination moves to `~/.dotfiles-backup/` first — nothing is deleted.
 Eight numbered sections, and three of the orderings are load-bearing:
 
 1. **p10k instant prompt** — must be first; nothing above it may print or read.
-2. **Homebrew shellenv** — must precede any `command -v` for a brew-installed
-   tool (pyenv, rbenv), or those blocks silently no-op on a fresh machine.
+2. **Homebrew shellenv** — must precede any `command -v` looking for a
+   brew-installed tool, or that block silently no-ops. Defensive at the moment:
+   everything `.zshrc` probes for now comes from mise, and brew is down to git,
+   gh and jq.
 3. PATH (`typeset -U path` dedupes).
 4. oh-my-zsh: settings, `fpath`, plugins, source. **`fpath` additions must come
    before this**, because sourcing oh-my-zsh runs `compinit`.
 5. `$EDITOR` (druk, vim fallback).
-6. Tool init. **fzf must come before atuin**: `fzf --zsh` binds Ctrl+R, and the
+6. Tool init — mise owns node, bun, python and ruby. **fzf before atuin**: `fzf --zsh` binds Ctrl+R, and the
    atuin block deliberately takes it back.
 7. `~/.zshrc.d/*.zsh`, in filename order, **last** so a drop-in can override
    any binding above it.
@@ -130,27 +131,35 @@ Every block is guarded, so one shared `.zshrc` serves all three OSes. No
 its upstream header intact. A multi-file project with its own releases (p10k
 3.0M, zsh-syntax-highlighting 1.8M) gets an install step and a `git clone`.
 
+**`zoxide init --cmd cd` renames its commands** — you get `cd`/`cdi`, not
+`z`/`zi`. `aliases.zsh` puts the original names back.
+
 **Check before adding an alias**: oh-my-zsh and its plugins define ~400 already.
 `als <word>` searches them. `aliases.zsh` marks its one deliberate shadow.
 
 ## Startup budget
 
-Measured on an M-series Mac, steady state. Total ≈ 1.25s.
+Measured on an M-series Mac, steady state. Total **≈ 0.28s**, down from ~1.25s.
 
 | | |
 | --- | --- |
-| `source $NVM_DIR/nvm.sh` | **~600ms** |
-| oh-my-zsh + plugins | ~180ms |
-| `rbenv init` (fork) | ~94ms |
-| `pyenv init` (fork) | ~78ms |
+| oh-my-zsh + ~15 plugins | ~180ms |
 | `brew shellenv` (fork) | ~37ms |
-| `fzf --zsh`, `zoxide init`, `atuin init` | ~13-19ms each |
+| `mise activate`, `fzf --zsh`, `zoxide init`, `atuin init` | ~13-19ms each |
 | bare `zsh -f` | ~9ms |
 
-p10k's instant prompt makes the prompt appear in ~30ms; it does not reduce the
-total. Profile with `zmodload zsh/zprof` — but note zprof only sees *functions*,
-so it misses `eval "$(… init)"` forks and its nested totals double-count. Time
-each piece as its own process instead.
+How it got there, since the numbers are the argument for the design:
+
+| | |
+| --- | --- |
+| `source $NVM_DIR/nvm.sh` + a `load-nvmrc` chpwd hook | **~600ms**, replaced by mise activate at ~18ms |
+| `pyenv init` + `rbenv init` forks | **~170ms**, gone — mise owns python and ruby |
+
+oh-my-zsh is now the largest single item by a wide margin. p10k's instant prompt
+makes the prompt appear in ~30ms; it does not reduce the total. Profile with
+`zmodload zsh/zprof` — but note zprof only sees *functions*, so it misses
+`eval "$(… init)"` forks and its nested totals double-count. Time each piece as
+its own process instead.
 
 ## Testing
 
@@ -164,6 +173,10 @@ script -q /dev/null zsh -i -c exit     # a clean startup needs a pty; without
 cat -v                                 # then press a key to see what it sends
 ```
 
+**`HOME=/tmp/fake` does not sandbox mise.** It resolves its home from the OS
+passwd entry, not `$HOME`, so it will read your real `~/.config/mise/config.toml`
+and then fail a trust check. Use `MISE_CONFIG_DIR` and `MISE_DATA_DIR` instead.
+
 For key bindings, drive a real pty with `expect`: type a line, send the key
 bytes, then type a marker and check where it landed. To prove an installer does
 not touch your rc files, put decoy `.zshrc`/`.bashrc`/`.profile` in a fake
@@ -171,9 +184,6 @@ not touch your rc files, put decoy `.zshrc`/`.bashrc`/`.profile` in a fake
 
 ## Open decisions
 
-- **nvm → mise.** ~600ms of the 1.25s startup, plus a `chpwd` hook that forks on
-  every `cd`. mise would replace nvm, pyenv and rbenv (~770ms) with one tool at
-  ~10ms. Deliberately deferred; discuss before changing.
 - **`op` CLI is installed by no step**, and the 1Password desktop app does not
   ship it (the bundle only has `op-ssh-sign`). `1password.zsh` defines helpers
   and exports nothing, so it stays inert until `op` is installed by hand. On a

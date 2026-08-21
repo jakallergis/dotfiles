@@ -32,6 +32,14 @@ alias bx='bunx'
 alias br='bun run'
 alias bi='bun install'
 
+# --- zoxide -----------------------------------------------------------------
+# .zshrc inits zoxide with `--cmd cd`, which *renames* its commands: you get
+# cd/cdi instead of z/zi. These put the original names back.
+if command -v zoxide &>/dev/null; then
+  alias z='cd'
+  alias zi='cdi'
+fi
+
 # --- git --------------------------------------------------------------------
 # DELIBERATE SHADOW: oh-my-zsh's git plugin defines gc='git commit --verbose'.
 # Its own "commit with a message" alias is gcmsg. Keeping muscle memory instead.
