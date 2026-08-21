@@ -8,6 +8,39 @@
 #   ./install.sh -y              run everything without asking
 #   ./install.sh -n              show what would run
 #   ./install.sh zsh fonts       run only steps matching these words
+#
+# Not cloned yet? This same script bootstraps itself:
+#
+#   sh -c "$(curl -fsSL https://raw.githubusercontent.com/jakallergis/dotfiles/master/install.sh)"
+#
+# To pass flags that way, give $0 a placeholder first, as omz does:
+#
+#   sh -c "$(curl -fsSL .../install.sh)" "" -y
+
+# --- bootstrap ---------------------------------------------------------------
+# Two cases, one block, and both must be handled in POSIX sh before the bash
+# features below are reached:
+#
+#   piped from curl   there is no checkout and "$0" is not a file
+#   run under sh      the shebang is ignored, so bash features would break
+DOTFILES_REPO=${DOTFILES_REPO:-https://github.com/jakallergis/dotfiles}
+DOTFILES_DIR=${DOTFILES_DIR:-$HOME/.dotfiles}
+
+if [ ! -f "$0" ] || [ ! -d "$(dirname "$0")/steps" ]; then
+  command -v git >/dev/null 2>&1 || { echo "install.sh: git is required to clone the repo" >&2; exit 1; }
+  command -v bash >/dev/null 2>&1 || { echo "install.sh: bash is required" >&2; exit 1; }
+
+  if [ -d "$DOTFILES_DIR/.git" ]; then
+    echo "dotfiles already at $DOTFILES_DIR — pulling"
+    git -C "$DOTFILES_DIR" pull --ff-only || true
+  else
+    echo "Cloning $DOTFILES_REPO into $DOTFILES_DIR"
+    git clone "$DOTFILES_REPO" "$DOTFILES_DIR" || exit 1
+  fi
+  exec bash "$DOTFILES_DIR/install.sh" "$@"
+elif [ -z "${BASH_VERSION:-}" ]; then
+  exec bash "$0" "$@"
+fi
 
 set -euo pipefail
 cd "$(dirname "$0")"

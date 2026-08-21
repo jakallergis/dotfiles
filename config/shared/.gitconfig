@@ -1,0 +1,45 @@
+# Portable git config, symlinked from dotfiles/config/shared/.gitconfig.
+#
+# The machine-specific half — the path to 1Password's SSH signing binary, which
+# differs per OS — is written to ~/.config/git/config by steps/shared/40-git.sh.
+# Git reads that file too, before this one, so anything here wins on a clash.
+#
+# Not an [include]: git resolves a relative include path against the directory
+# of the file containing it, which for a symlinked ~/.gitconfig is this repo,
+# and it does not expand ~/ in include.path either. Both were tested.
+
+[user]
+	email = j.a.kallergis@gmail.com
+	name = John A. Kallergis
+	signingkey = ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC/4dGf4jyTWfRjtNQDTTiCxbNfPYjoO1wLDzjeSXVTawbAgQtbS/aJ4PMSO9eV8gWCL+8HzHa9mUJZttVTZJmT4lpZr6AZ9OyGMEnbsYPxjF4r4fjEsX79rW5/EpNW/UzK0uF5g/i3x3vAe4pgs3FRGWugP7HJrCLS1gBY8P6wmQRYNqBji5+1Fm1SL6MdCXt3gujJNWTpxsAKfDrMUhNpCWGrdENds++Rh2VWQz+M1jCl/kGoa+rtq80e0yKFvFIi6rkLOsY0MswjRG8ghgNe6gS/+Znb6/YWDm1/y2Pgr82lRVpo1z6DuMixGE1n4LTFeu8FDqHTId0F1bQdsjnTcYDjz09rAQgfADOhgbSeM7kOYV3K2ZSJzCxj4SelJtDGFm0zchoff8E3zB/gfWYQ788McDP9nsDXgN9cx0pw4/taVOnlNUvnJLAUTCeoY1cX0hEcCu1wtGQV65kjF/CLT+Ov+kgglSwt2o+xt+Nn97cDVDoxayuHxLFye4PassFK//90lofgg4KkBfFyr1KCSBOAMwu0eLWzh/oWCvyqFoM+8WHu+LjkBIZM9FJr7H+zJg+4SZIUFJ1DuYEyHlQifVQ3+8g8ZHIn8qU8Lh8u4tjDo9oRomu6cOV9PyOn4DzlBqMS2NUAqv1HmJJNAJmynz8TM9p6nmI48JlelWbkww==
+
+[gpg]
+	format = ssh
+
+[commit]
+	gpgsign = true
+
+[init]
+	defaultBranch = main
+
+# delta, installed by mise. Set here rather than by a step so there is one
+# source of truth.
+[core]
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true
+
+[gitbutler]
+	signCommits = true
+	aiModelProvider = openai
+
+# gh as the credential helper, found on PATH instead of by absolute path so this
+# line works on Linux too. The empty helper first clears any inherited default.
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential

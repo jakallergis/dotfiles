@@ -3,8 +3,24 @@
 Config for macOS, Linux and Windows (Git Bash), applied by one script.
 
 ```sh
-git clone https://github.com/jakallergis/dotfiles ~/dotfiles && cd ~/dotfiles && ./install.sh
+git clone https://github.com/jakallergis/dotfiles ~/.dotfiles && cd ~/.dotfiles && ./install.sh
 ```
+
+Or, with nothing cloned yet — `install.sh` bootstraps itself:
+
+```sh
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/jakallergis/dotfiles/master/install.sh)"
+sh -c "$(curl -fsSL https://raw.githubusercontent.com/jakallergis/dotfiles/master/install.sh)" "" -y     # to pass flags, $0 needs a placeholder
+```
+
+That block is POSIX sh and runs before anything bash-specific, because `sh -c`
+ignores the shebang. It clones to `$DOTFILES_DIR` (default `~/.dotfiles`) and
+`exec`s the real copy. Nothing else hardcodes that path: `dots()` finds the repo
+by reading the `~/.zshrc` symlink, which is what makes it work under Coder too —
+Coder clones into `~/.config/coderv2/dotfiles`, not `$HOME`. `install.sh` is also the name Coder auto-runs — its list
+is `install.sh, install, bootstrap.sh, bootstrap, setup.sh, setup` plus
+`script/` variants — so one file serves both, and from a checkout the bootstrap
+branch is skipped.
 
 This file is the guide for anyone — human or agent — changing this repo. It
 records the conventions and, more importantly, the traps that are expensive to
@@ -89,11 +105,11 @@ destination moves to `~/.dotfiles-backup/` first — nothing is deleted.
   `config/macos/.zshrc.d/` would shadow the entire shared one. OS-specific
   drop-ins therefore live in the shared directory with a guard:
   `[[ $OSTYPE == darwin* ]] || return`.
-- **`.config` is the one exception: it is mirrored file by file**, never linked
-  as a directory. `~/.config` belongs to every tool on the machine — linking it
-  would drag their state into this repo, including gh's OAuth token. Add
-  `config/shared/.config/<tool>/<file>` and the step links that one file,
-  creating parent directories and leaving `~/.config` itself a real directory.
+- **`MIRROR=".config .claude .agents"`** — those three are descended into and
+  linked file by file, never as a directory, because other tools write into them
+  too (`~/.claude` holds a 1 MB history file and 678 plugin files; `~/.config/gh`
+  holds an OAuth token). Everything else is linked whole, which is why adding a
+  file to `config/shared/.zshrc.d/` needs no re-run.
 
 **What belongs in `config/`: the delta, never the whole file.** Four boxes —
 intent (hand-written and small, e.g. `.config/git/ignore`) is tracked; defaults
@@ -107,6 +123,22 @@ one line. Most tools can print just the delta — `git config --global --list`,
 
 `settings/` is an archive of app preferences (iTerm2, Alfred, Xcode…). It is
 **not** symlinked; export to it by hand.
+
+## Split config: tracked intent, generated machine facts
+
+`~/.gitconfig` is tracked (identity, ssh signing, delta, gh credential helper by
+PATH not by absolute path). The one value that cannot be portable — the path to
+1Password's `op-ssh-sign`, different on every OS — is written to
+**`~/.config/git/config`** by `steps/shared/40-git.sh`.
+
+Git reads that file *in addition to* `~/.gitconfig`, and before it, so the
+tracked file wins any clash. Two things that do **not** work here, both tested:
+an `[include] path = ~/.gitconfig.local` (git does not expand `~/` in
+include.path) and a relative include (git resolves it against the including
+file's directory, which through the symlink is this repo).
+
+Same shape elsewhere: `~/.zshrc.local` for secrets, `mise use -g` writing
+through the symlinked mise config.
 
 ## .zshrc
 

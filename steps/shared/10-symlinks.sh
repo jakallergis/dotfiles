@@ -4,9 +4,12 @@
 # $HOME under the same name. No list to maintain: add a file, get a link. A file
 # in config/<os> replaces one with the same name in config/shared.
 #
-# One exception: .config is mirrored file by file rather than linked as a whole
-# directory. ~/.config belongs to every tool on the machine — linking it would
-# drag their state into this repo, including gh's OAuth token.
+# MIRROR names the directories that other tools also write into — we descend
+# into those and link individual files, so ~/.config, ~/.claude and ~/.agents
+# stay real directories holding their own state. Everything else is linked as a
+# whole, which is why adding a file to config/shared/.zshrc.d/ needs no re-run.
+
+MIRROR=".config .claude .agents"
 
 shopt -s dotglob nullglob
 
@@ -43,13 +46,15 @@ link_lane() {
       continue
     fi
 
-    if [ "$name" = .config ]; then
-      while IFS= read -r file; do
-        rel=${file#config/$lane/}
-        link_one "$DOTFILES/$file" "$rel"
-      done < <(find "config/$lane/.config" -type f)
-      continue
-    fi
+    case " $MIRROR " in
+      *" $name "*)
+        while IFS= read -r file; do
+          rel=${file#config/$lane/}
+          link_one "$DOTFILES/$file" "$rel"
+        done < <(find "config/$lane/$name" -type f ! -name '.DS_Store')
+        continue
+        ;;
+    esac
 
     link_one "$DOTFILES/$src" "$name"
   done

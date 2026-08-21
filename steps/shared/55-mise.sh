@@ -25,12 +25,6 @@ fi
 mise install
 ok "$(mise ls --global 2>/dev/null | wc -l | tr -d ' ') tools installed"
 
-# delta only does anything once git is told to use it. Idempotent.
-if has delta; then
-  git config --global core.pager delta
-  git config --global interactive.diffFilter 'delta --color-only'
-  git config --global delta.navigate true
-  ok "git pages through delta"
-fi
+# delta is wired into git by the tracked config/shared/.gitconfig, not here.
 
 info "run 'mise doctor' if something looks off"

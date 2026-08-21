@@ -1,0 +1,51 @@
+{
+  "version": 3,
+  "skills": {
+    "do-i-understand": {
+      "source": "anthonypalicea/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/anthonypalicea/skills.git",
+      "skillPath": "skills/do-i-understand/SKILL.md",
+      "skillFolderHash": "d14b4424f85b8a1a7ef5761452eff670ca3d425c",
+      "installedAt": "2026-07-04T05:07:06.589Z",
+      "updatedAt": "2026-07-06T17:35:52.122Z"
+    },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/vercel-labs/skills.git",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "skillFolderHash": "eb6a23305aea6e340d14b9de3766e721f9f4861b",
+      "installedAt": "2026-07-04T05:07:12.821Z",
+      "updatedAt": "2026-07-04T05:07:12.821Z"
+    },
+    "simple-english": {
+      "source": "AminBlg/SimpleEnglish",
+      "sourceType": "github",
+      "sourceUrl": "https://github.com/AminBlg/SimpleEnglish.git",
+      "skillPath": "skills/simple-english/SKILL.md",
+      "skillFolderHash": "b9dfd2e2dd19c90025f9ba0a79259c089419777b",
+      "installedAt": "2026-08-07T14:06:00.217Z",
+      "updatedAt": "2026-08-07T14:06:00.217Z"
+    }
+  },
+  "dismissed": {
+    "findSkillsPrompt": true
+  },
+  "lastSelectedAgents": [
+    "amp",
+    "antigravity",
+    "antigravity-cli",
+    "cline",
+    "codex",
+    "cursor",
+    "deepagents",
+    "gemini-cli",
+    "github-copilot",
+    "kimi-code-cli",
+    "opencode",
+    "warp",
+    "zed",
+    "claude-code"
+  ]
+}

@@ -2,5 +2,6 @@
 # https://docs.atuin.sh/configuration/config/ — copying it here would pin a
 # snapshot of atuin's defaults and quietly go stale.
 
-# Enter runs the selected command instead of only putting it on the line.
-enter_accept = true
+# With this false, both Enter and Tab put the selected command on the prompt for
+# editing rather than running it. atuin defaults to true (Enter executes).
+enter_accept = false
