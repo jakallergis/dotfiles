@@ -3,7 +3,7 @@
 # Only what is needed for the rest of the steps to work — zsh has its own step.
 # Add your distro here if you meet one that is missing.
 
-packages="git curl unzip vim tmux"
+packages="git curl unzip vim"
 
 if [ -z "$SUDO" ] && [ "$(id -u)" != 0 ]; then
   warn "no root here — install by hand: $packages"

@@ -1,0 +1,180 @@
+# dotfiles
+
+Config for macOS, Linux and Windows (Git Bash), applied by one script.
+
+```sh
+git clone https://github.com/jakallergis/dotfiles ~/dotfiles && cd ~/dotfiles && ./install.sh
+```
+
+This file is the guide for anyone — human or agent — changing this repo. It
+records the conventions and, more importantly, the traps that are expensive to
+rediscover.
+
+## install.sh
+
+186 lines, no library, no framework. It finds the steps, asks, runs them.
+
+- A **step** is `steps/<lane>/<NN>-<slug>.sh`. Lanes are `shared`, `macos`,
+  `linux`, `windows`.
+- `shared` and the detected OS lane are merged into **one list sorted by
+  filename**, so `shared/10-symlinks.sh` runs between `macos/05-homebrew.sh`
+  and `macos/15-zsh.sh`. Leave gaps in the numbering.
+- A file in the OS lane **replaces** a shared file of the same name.
+- `_*` and `.*` files are ignored.
+- The display name comes from a `# name:` comment, else the filename.
+- Each step runs in `( set -e; . "$step" )` — a standalone subshell, never an
+  `if` condition, because bash suspends errexit inside conditions and the
+  suspension leaks into subshells. Get that wrong and a step sails past a
+  failed command reporting success.
+- A failing step stops the run and prints how to re-run just that one.
+
+```sh
+./install.sh              # ask before each step
+./install.sh -y           # no questions
+./install.sh -n           # print the plan only
+./install.sh zsh fonts    # only steps whose path matches these words
+DOTFILES_OS=linux ./install.sh -n   # see another machine's plan from here
+```
+
+## Writing a step
+
+Available with no imports: `$OS` (macos|linux|windows), `$DOTFILES`, `$SUDO`
+(empty when already root or when there is no sudo), `has`, `info`, `ok`, `warn`,
+`err`, `die`, `confirm`, `ask`. Copy `steps/_template.sh`.
+
+Four rules:
+
+1. **Be idempotent.** Detect, then act. Most steps start with
+   `has foo && { ok "already installed"; return 0; }`.
+2. **The last line must succeed.** A sourced file returns its last command's
+   status, so a trailing `is_linux && do_thing` that evaluates false *fails the
+   step*. Wrap trailing conditionals in `if`. This has bitten twice.
+3. **Guard, do not fail, for the wrong OS.** `[ "$OS" = windows ] && { warn
+   "…"; return 0; }`.
+4. **Never append to a shell rc file.** See below.
+
+## The rc-file trap
+
+`~/.zshrc` is a **symlink into this repo**. Any installer that appends to it is
+committing to git. Every tool needs a different lever, and they are easy to get
+wrong:
+
+| tool | how it is stopped |
+| --- | --- |
+| oh-my-zsh | `--unattended --keep-zshrc` (also stops its `exec zsh -l`, which would end the run) |
+| nvm | `PROFILE=/dev/null` |
+| bun / bum | `SHELL=none` — no flag exists; it forces the installer's "print instructions" branch. bun appends **unconditionally, with no dedup check** |
+| atuin | `ATUIN_NO_MODIFY_PATH=1` (`--no-modify-path` is deprecated). Also skips writing `~/.atuin/bin/env`, so `.zshrc` adds that bin dir itself |
+| druk | `--no-modify-path` |
+| fzf | `install --bin` |
+| zoxide | nothing needed — it writes no shell config |
+| p10k | its own `[[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh` line, **verbatim**, so the wizard's grep finds it and stops adding a second copy |
+
+Two more, found the hard way: bum's installer runs `tar -xvf` with no `-C`, so
+it must be run from a temp dir or it unpacks into this repo; and bum installs
+bun via bun's own installer, leaving `bum list` empty, so the step has to run
+`bum use <version>` explicitly for bum to actually manage anything.
+
+The shell wiring those installers want to add belongs in `config/shared/.zshrc`
+or a drop-in — never in a step.
+
+## config/ and symlinks
+
+`steps/shared/10-symlinks.sh` links every **top-level** entry of
+`config/shared/` and `config/<os>/` into `$HOME` under the same name. Add a
+file, get a symlink; there is no list to maintain. Anything already at the
+destination moves to `~/.dotfiles-backup/` first — nothing is deleted.
+
+- An OS lane file replaces a shared one **of the same name**.
+- **Directories are replaced wholesale, not merged.** A
+  `config/macos/.zshrc.d/` would shadow the entire shared one. OS-specific
+  drop-ins therefore live in the shared directory with a guard:
+  `[[ $OSTYPE == darwin* ]] || return`.
+- Only top level is linked, so a nested `~/.config/nvim` layout would symlink
+  the whole `.config` directory. Link the leaf yourself if that day comes.
+
+`settings/` is an archive of app preferences (iTerm2, Alfred, Xcode…). It is
+**not** symlinked; export to it by hand.
+
+## .zshrc
+
+Eight numbered sections, and three of the orderings are load-bearing:
+
+1. **p10k instant prompt** — must be first; nothing above it may print or read.
+2. **Homebrew shellenv** — must precede any `command -v` for a brew-installed
+   tool (pyenv, rbenv), or those blocks silently no-op on a fresh machine.
+3. PATH (`typeset -U path` dedupes).
+4. oh-my-zsh: settings, `fpath`, plugins, source. **`fpath` additions must come
+   before this**, because sourcing oh-my-zsh runs `compinit`.
+5. `$EDITOR` (druk, vim fallback).
+6. Tool init. **fzf must come before atuin**: `fzf --zsh` binds Ctrl+R, and the
+   atuin block deliberately takes it back.
+7. `~/.zshrc.d/*.zsh`, in filename order, **last** so a drop-in can override
+   any binding above it.
+8. `~/.zshrc.local` — untracked, per-machine, where tokens go.
+
+Every block is guarded, so one shared `.zshrc` serves all three OSes. No
+`config/linux/.zshrc` is needed.
+
+## ~/.zshrc.d drop-ins
+
+| file | what |
+| --- | --- |
+| `options.zsh` | the few `setopt`s oh-my-zsh does not already set |
+| `aliases.zsh` | listing, bun, git, editing |
+| `functions.zsh` | `mkcd`, `killport`, `dots`, `gclone` |
+| `fzf.zsh` | fd/bat wiring for previews |
+| `1password.zsh` | `secret`, `oprun` — inert without the `op` CLI |
+
+**Vendor or install?** A single stable file (~100 lines) gets vendored here with
+its upstream header intact. A multi-file project with its own releases (p10k
+3.0M, zsh-syntax-highlighting 1.8M) gets an install step and a `git clone`.
+
+**Check before adding an alias**: oh-my-zsh and its plugins define ~400 already.
+`als <word>` searches them. `aliases.zsh` marks its one deliberate shadow.
+
+## Startup budget
+
+Measured on an M-series Mac, steady state. Total ≈ 1.25s.
+
+| | |
+| --- | --- |
+| `source $NVM_DIR/nvm.sh` | **~600ms** |
+| oh-my-zsh + plugins | ~180ms |
+| `rbenv init` (fork) | ~94ms |
+| `pyenv init` (fork) | ~78ms |
+| `brew shellenv` (fork) | ~37ms |
+| `fzf --zsh`, `zoxide init`, `atuin init` | ~13-19ms each |
+| bare `zsh -f` | ~9ms |
+
+p10k's instant prompt makes the prompt appear in ~30ms; it does not reduce the
+total. Profile with `zmodload zsh/zprof` — but note zprof only sees *functions*,
+so it misses `eval "$(… init)"` forks and its nested totals double-count. Time
+each piece as its own process instead.
+
+## Testing
+
+```sh
+./install.sh -n                        # plan
+DOTFILES_OS=linux ./install.sh -n      # another lane's plan
+HOME=/tmp/fakehome ./install.sh -y symlinks   # destructive steps, safely
+zsh -n config/shared/.zshrc            # syntax
+script -q /dev/null zsh -i -c exit     # a clean startup needs a pty; without
+                                       # one, gitstatus fails spuriously
+cat -v                                 # then press a key to see what it sends
+```
+
+For key bindings, drive a real pty with `expect`: type a line, send the key
+bytes, then type a marker and check where it landed. To prove an installer does
+not touch your rc files, put decoy `.zshrc`/`.bashrc`/`.profile` in a fake
+`$HOME` and diff them afterwards.
+
+## Open decisions
+
+- **nvm → mise.** ~600ms of the 1.25s startup, plus a `chpwd` hook that forks on
+  every `cd`. mise would replace nvm, pyenv and rbenv (~770ms) with one tool at
+  ~10ms. Deliberately deferred; discuss before changing.
+- **`op` CLI is installed by no step**, and the 1Password desktop app does not
+  ship it (the bundle only has `op-ssh-sign`). `1password.zsh` defines helpers
+  and exports nothing, so it stays inert until `op` is installed by hand. On a
+  headless box it needs a service account token.
