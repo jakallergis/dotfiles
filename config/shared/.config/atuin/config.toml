@@ -1,0 +1,6 @@
+# Only what differs from atuin's defaults. The full commented reference lives at
+# https://docs.atuin.sh/configuration/config/ — copying it here would pin a
+# snapshot of atuin's defaults and quietly go stale.
+
+# Enter runs the selected command instead of only putting it on the line.
+enter_accept = true

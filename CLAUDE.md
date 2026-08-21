@@ -89,8 +89,21 @@ destination moves to `~/.dotfiles-backup/` first — nothing is deleted.
   `config/macos/.zshrc.d/` would shadow the entire shared one. OS-specific
   drop-ins therefore live in the shared directory with a guard:
   `[[ $OSTYPE == darwin* ]] || return`.
-- Only top level is linked, so a nested `~/.config/nvim` layout would symlink
-  the whole `.config` directory. Link the leaf yourself if that day comes.
+- **`.config` is the one exception: it is mirrored file by file**, never linked
+  as a directory. `~/.config` belongs to every tool on the machine — linking it
+  would drag their state into this repo, including gh's OAuth token. Add
+  `config/shared/.config/<tool>/<file>` and the step links that one file,
+  creating parent directories and leaving `~/.config` itself a real directory.
+
+**What belongs in `config/`: the delta, never the whole file.** Four boxes —
+intent (hand-written and small, e.g. `.config/git/ignore`) is tracked; defaults
+you happen to agree with are never tracked, because not tracking them is how you
+inherit upstream improvements; tool state and secrets are never tracked
+(`.config/gh/hosts.yml` holds an OAuth token); and a config that *is* the source
+of truth is tracked. Worked example: atuin's own config.toml is 403 lines of
+which one is a real setting, so `config/shared/.config/atuin/config.toml` is that
+one line. Most tools can print just the delta — `git config --global --list`,
+`npm config ls` without `-l`.
 
 `settings/` is an archive of app preferences (iTerm2, Alfred, Xcode…). It is
 **not** symlinked; export to it by hand.
@@ -184,6 +197,10 @@ not touch your rc files, put decoy `.zshrc`/`.bashrc`/`.profile` in a fake
 
 ## Open decisions
 
+- **mise's tool list lives in `config/shared/.config/mise/config.toml`**, not in
+  `55-mise.sh`, which just runs `mise install`. `mise use -g <tool>` writes
+  through the symlink into the repo (verified: mise writes in place rather than
+  replacing the symlink), so adding a tool is a diff to commit.
 - **`op` CLI is installed by no step**, and the 1Password desktop app does not
   ship it (the bundle only has `op-ssh-sign`). `1password.zsh` defines helpers
   and exports nothing, so it stays inert until `op` is installed by hand. On a

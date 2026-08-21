@@ -108,9 +108,9 @@ autoload -Uz zmv
 # mise: one version manager for node, bun and friends. Replaced nvm, whose
 # nvm.sh cost ~600ms per shell and whose load-nvmrc hook forked on every cd.
 #
-# mise ignores .nvmrc and .node-version unless told to — the setting defaults to
-# an empty list — and plenty of existing projects still use them.
-export MISE_IDIOMATIC_VERSION_FILE_ENABLE_TOOLS=node,python,ruby
+# .nvmrc / .python-version / .ruby-version support is off by default in mise;
+# it is switched on in the tracked ~/.config/mise/config.toml, not here, so
+# there is one source of truth.
 command -v mise &>/dev/null && eval "$(mise activate zsh)"
 
 # fzf must come BEFORE atuin: `fzf --zsh` binds Ctrl-R to its own history

@@ -1,22 +1,14 @@
 # name: mise
 #
-# One version manager for everything, replacing nvm, bum, and the hand-rolled
-# installers for atuin, zoxide, fzf, fd, bat, eza and delta. mise's installer is
-# well behaved: it only *prints* the activation line, so
-# `eval "$(mise activate zsh)"` lives in config/shared/.zshrc where it belongs.
+# One version manager for node, bun, python, ruby and the CLI binaries. The tool
+# list is not in this file: it lives in the tracked
+# config/shared/.config/mise/config.toml, symlinked to ~/.config/mise by step 10.
+# So `mise install` is the whole story, and `mise use -g <tool>` on any machine
+# writes through that symlink into the repo, where it shows up as a diff to
+# commit. (Verified: mise writes through the symlink rather than replacing it.)
 #
-# Both lists live here rather than in mise's ~/.config/mise/config.toml, so this
-# step is the source of truth and a fresh machine gets the same set.
-
-# Languages, where the version is the point. mise always owns these.
-# ruby is built from source by ruby-build (core:ruby), so a fresh machine spends
-# a few minutes here; node, bun and python come precompiled.
-MANAGED="node@lts bun@latest python@3.12 ruby@3.4.7"
-
-# Plain binaries. Skipped when one is already on PATH, so a brew or apt copy is
-# left alone rather than quietly shadowed — uninstall the system copy and re-run
-# if you would rather mise owned it. On my machines mise owns all of these.
-TOOLS="fd bat eza delta fzf zoxide atuin"
+# A fresh machine spends a few minutes here: ruby is built from source by
+# ruby-build, while node, bun, python and the binaries come precompiled.
 
 PATH="$HOME/.local/bin:$PATH"
 
@@ -28,26 +20,10 @@ else
   ok "mise $(mise --version)"
 fi
 
-# shellcheck disable=SC2086
-mise use --global $MANAGED
-ok "managed: $MANAGED"
+[ -f "$HOME/.config/mise/config.toml" ] || die "no mise config — run ./install.sh symlinks first"
 
-for tool in $TOOLS; do
-  if has "${tool%%@*}"; then
-    info "${tool%%@*} already on PATH, leaving it alone"
-  else
-    mise use --global "$tool" && ok "$tool"
-  fi
-done
-
-# mise reads .tool-versions and mise.toml out of the box but ignores the
-# idiomatic files (.nvmrc, .python-version, .ruby-version, Gemfile):
-# idiomatic_version_file_enable_tools defaults to an empty list, so existing
-# projects would be silently ignored. config/shared/.zshrc exports the same
-# setting for interactive shells; this covers mise run from an IDE or a script.
-for _tool in node python ruby; do
-  mise settings add idiomatic_version_file_enable_tools "$_tool" 2>/dev/null || true
-done
+mise install
+ok "$(mise ls --global 2>/dev/null | wc -l | tr -d ' ') tools installed"
 
 # delta only does anything once git is told to use it. Idempotent.
 if has delta; then
