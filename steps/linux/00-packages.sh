@@ -5,8 +5,8 @@
 
 packages="git curl unzip vim"
 
-if [ -z "$SUDO" ] && [ "$(id -u)" != 0 ]; then
-  warn "no root here — install by hand: $packages"
+if [ "$CAN_ROOT" != 1 ]; then
+  warn "no usable root — skipping. Install by hand if you need them: $packages"
   return 0
 fi
 

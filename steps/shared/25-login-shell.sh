@@ -12,7 +12,7 @@ if [ "$(basename "${SHELL:-}")" = zsh ]; then
 fi
 
 # Try chsh first. It needs root, and refuses any shell missing from /etc/shells.
-if [ "$(id -u)" = 0 ] || [ -n "$SUDO" ]; then
+if [ "$CAN_ROOT" = 1 ]; then
   if ! grep -qx "$zsh_bin" /etc/shells 2>/dev/null; then
     printf '%s\n' "$zsh_bin" | $SUDO tee -a /etc/shells >/dev/null || true
   fi

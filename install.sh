@@ -63,9 +63,25 @@ err()   { printf '    %sx%s %s\n' "$red" "$reset" "$*" >&2; }
 die()   { err "$*"; exit 1; }
 has()   { command -v "$1" >/dev/null 2>&1; }
 
-# Steps that need root write "$SUDO apt-get …": empty when we already are root,
-# or when there is no sudo at all (containers) and the command has to try anyway.
-if [ "$(id -u)" = 0 ] || ! has sudo; then SUDO=''; else SUDO=sudo; fi
+# Privileges, worked out once. Two separate facts, because conflating them is
+# how a workspace outside sudoers ends up failing instead of skipping:
+#
+#   SUDO      prefix for privileged commands — empty when we already are root
+#   CAN_ROOT  whether a privileged command can succeed here at all
+#
+# `has sudo` is not enough: sudo is installed on plenty of boxes where you are
+# not in sudoers, and a password prompt with no terminal is a hard failure.
+if [ "$(id -u)" = 0 ]; then
+  SUDO='' CAN_ROOT=1 ROOT_WHY='already root'
+elif ! has sudo; then
+  SUDO='' CAN_ROOT=0 ROOT_WHY='no sudo installed'
+elif sudo -n true 2>/dev/null; then
+  SUDO=sudo CAN_ROOT=1 ROOT_WHY='sudo, no password needed'
+elif [ -t 0 ]; then
+  SUDO=sudo CAN_ROOT=1 ROOT_WHY='sudo, will ask for your password'
+else
+  SUDO='' CAN_ROOT=0 ROOT_WHY='sudo needs a password and there is no terminal'
+fi
 
 # confirm "question" — yes unless the user says otherwise. Always yes with -y
 # or when there is nobody at the keyboard.
@@ -175,6 +191,11 @@ wanted() {
 banner
 info "${dim}system${reset}  $OS ($(uname -m))"
 info "${dim}repo${reset}    $DOTFILES"
+if [ "$CAN_ROOT" = 1 ]; then
+  info "${dim}root${reset}    yes ${dim}($ROOT_WHY)${reset}"
+else
+  info "${dim}root${reset}    no ${dim}($ROOT_WHY) — steps needing it will be skipped${reset}"
+fi
 [ "$DRY_RUN" = 1 ] && info "${dim}mode${reset}    dry run, nothing will change"
 
 ran=0

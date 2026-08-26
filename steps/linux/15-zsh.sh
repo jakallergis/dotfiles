@@ -5,8 +5,9 @@ if has zsh; then
   return 0
 fi
 
-if [ -z "$SUDO" ] && [ "$(id -u)" != 0 ]; then
-  warn "no root here — install zsh by hand, then re-run"
+if [ "$CAN_ROOT" != 1 ]; then
+  warn "no usable root — skipping. zsh is not in mise's registry, so it needs a"
+  info "package manager: ask for sudo, or use an image that ships zsh"
   return 0
 fi
 
