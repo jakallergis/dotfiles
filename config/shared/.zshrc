@@ -22,7 +22,15 @@ for _brew in /opt/homebrew/bin/brew /usr/local/bin/brew /home/linuxbrew/.linuxbr
 done
 unset _brew
 
-# --- 3. PATH ----------------------------------------------------------------
+# --- 3. environment and PATH -------------------------------------------------
+# ~/.config is already the XDG default when this is unset, so exporting it looks
+# redundant — it is not. Some tools only honour ~/.config when the variable is
+# actually *set*, and fall back to a native path otherwise: lazygit on macOS
+# reads ~/Library/Application Support/lazygit unless this is exported, so a
+# symlinked config works on Linux and is ignored in silence on the Mac. Setting
+# it makes both read the same tree, which is the whole point of config/shared.
+export XDG_CONFIG_HOME="${XDG_CONFIG_HOME:-$HOME/.config}"
+
 typeset -U path PATH # zsh keeps $path free of duplicates for us
 
 # ~/.bun/bin is where `bun add -g` puts binaries (BUN_INSTALL defaults there)

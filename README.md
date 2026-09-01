@@ -90,10 +90,10 @@ to `~/.dotfiles-backup/` first.
 | | |
 | --- | --- |
 | **shell** | zsh + [oh-my-zsh](https://ohmyz.sh) + [powerlevel10k](https://github.com/romkatv/powerlevel10k), autosuggestions, syntax highlighting |
-| **tools** | one [mise](https://mise.jdx.dev) config installs node, bun, python, ruby, and `atuin bat delta eza fd fzf tmux zoxide` |
+| **tools** | one [mise](https://mise.jdx.dev) config installs node, bun, python, ruby, and `atuin bat delta eza fd fzf lazygit tmux zoxide` |
 | **history** | [atuin](https://atuin.sh) on <kbd>Ctrl</kbd>+<kbd>R</kbd>, plus `ahist` for a cross-author fuzzy picker |
 | **sessions** | tmux, auto-attached on any machine you reach over ssh — [see below](#tmux) |
-| **git** | tracked identity, ssh commit signing via 1Password, [delta](https://github.com/dandavison/delta) diffs |
+| **git** | tracked identity, ssh commit signing via 1Password, [delta](https://github.com/dandavison/delta) diffs, [lazygit](https://github.com/jesseduffield/lazygit) on `lg` |
 | **editor** | [druk](https://druk.letstri.dev), falling back to vim |
 | **macOS** | Homebrew, a Finder/Dock `defaults` pass, Hack and Meslo fonts |
 
@@ -107,6 +107,7 @@ dots               # cd to this repo, wherever it was cloned
 mkcd foo/bar       # mkdir -p, then cd
 killport 3000      # kill whatever is holding the port
 gclone <url>       # clone, then cd into it
+lg                 # lazygit: stage, commit, rebase, stash, visually
 ahist              # fuzzy-pick from everyone's shell history, agents included
 als <word>         # search the ~400 aliases oh-my-zsh already defined
 ```
@@ -254,7 +255,8 @@ Eight numbered sections, and three of the orderings are load-bearing:
    brew-installed tool, or that block silently no-ops. Defensive at the moment:
    everything `.zshrc` probes for now comes from mise, and brew is down to git,
    gh and jq.
-3. PATH (`typeset -U path` dedupes).
+3. Environment and PATH — `XDG_CONFIG_HOME` is exported here (see lazygit
+   below for why that is not redundant); `typeset -U path` dedupes.
 4. oh-my-zsh: settings, `fpath`, plugins, source. **`fpath` additions must come
    before this**, because sourcing oh-my-zsh runs `compinit`.
 5. `$EDITOR` (druk, vim fallback).
@@ -425,6 +427,50 @@ the laptop.
 **What tmux does not survive: the machine going away.** Coder workspaces
 auto-stop on idle, and that takes the tmux server and everything in it. See
 [Open decisions](#open-decisions).
+
+## lazygit
+
+Git as a dashboard rather than a command: five always-visible panels, `1`-`5` to
+jump between them, mouse on by default. Installed by mise like everything else,
+configured by `config/shared/.config/lazygit/config.yml`, and aliased to `lg`.
+
+**On macOS it does not read `~/.config` unless `XDG_CONFIG_HOME` is set.** With
+the variable unset lazygit uses `~/Library/Application Support/lazygit/`, so a
+symlinked config here works on Linux and is ignored in silence on the Mac — no
+error, the settings simply do nothing. `.zshrc` therefore exports
+`XDG_CONFIG_HOME=$HOME/.config` even though that is already the XDG default when
+unset: the default is what the *spec* says, not what every tool does. Check with
+`lazygit --print-config-dir`.
+
+**delta is wired in through `git.diffRenderers`, not `git.paging`.** The old key
+was removed in lazygit 0.64 and a config still using it is accepted and quietly
+does nothing. The replacement is picky in a way worth writing down: for
+`type: stdinFilter` the flags must be part of `command`, because a sibling
+`args:` list is rejected — and lazygit's way of reporting a bad config is to
+print one line and **exit 0**, which reads as "it just won't start".
+
+```yaml
+git:
+  diffRenderers:
+    - type: stdinFilter
+      name: delta
+      colorArg: always
+      command: delta --paging=never
+```
+
+**`gui.nerdFontsVersion` is deliberately unset.** iTerm2 here runs
+MesloLGLForPowerline, which is a *Powerline* font — it has the arrows but not
+the Nerd Font icon set — so turning icons on renders tofu. Install a Nerd Font
+first, then set it to `"3"`.
+
+`update.method: never`, because mise owns the binary and pins it in the tracked
+mise config; a self-update prompt could only produce drift between the two.
+
+Considered and not chosen: **gitui** (Rust, half the binary, faster on huge
+repos, but keyboard-only and fewer operations) and **gitu** (a magit clone —
+one scrolling buffer, excellent if you come from Emacs, almost no visual
+affordance otherwise). All three are in mise's registry, so swapping is a
+one-line diff.
 
 ## Startup budget
 

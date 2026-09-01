@@ -1,0 +1,41 @@
+# ~/.config/lazygit/config.yml — symlinked from dotfiles/config/shared/.config/lazygit/
+#
+# The delta only. Everything not named here stays lazygit's default, which is
+# how upstream improvements arrive without being asked for.
+#
+# THE TRAP: on macOS lazygit does not read this file unless XDG_CONFIG_HOME is
+# set. With the variable unset it looks in ~/Library/Application Support/lazygit/
+# and this file is ignored in silence — config that works on Linux and does
+# nothing on the Mac, with no error to explain it. config/shared/.zshrc exports
+# XDG_CONFIG_HOME for precisely this. Confirm with `lazygit --print-config-dir`.
+
+git:
+  # Diffs inside lazygit look like diffs everywhere else, because both go
+  # through delta — the same delta ~/.gitconfig sets as core.pager.
+  #
+  # `stdinFilter` is the renderer type for a pager fed a diff on stdin, and
+  # colorArg makes lazygit pass --color=always so delta receives colour to
+  # restyle. `git.paging.pager` was the old spelling of this and was removed in
+  # lazygit 0.64 — a config using it is accepted and silently does nothing.
+  #
+  # The flags belong in `command`, not in a sibling `args:` list: lazygit
+  # rejects `args` for a stdinFilter outright, and its way of telling you is
+  # to refuse to start with a one-line message and exit 0.
+  diffRenderers:
+    - type: stdinFilter
+      name: delta
+      colorArg: always
+      command: delta --paging=never
+
+update:
+  # mise owns this binary and pins it in the tracked mise config.toml, so a
+  # self-update prompt could only ever produce drift between the two.
+  method: never
+
+# The "Thanks for using lazygit" panel that greets every fresh config.
+disableStartupPopups: true
+
+# Not set on purpose: gui.nerdFontsVersion. It would draw file-type and branch
+# icons, but iTerm2 here runs MesloLGLForPowerline — a Powerline font, which has
+# the arrows and not the Nerd Font icon set — so enabling it produces tofu.
+# Install a Nerd Font first, then set it to "3".

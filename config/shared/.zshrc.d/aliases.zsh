@@ -46,6 +46,10 @@ fi
 alias gc='git commit -m'
 alias gs='git status' # free — omz uses gst
 
+# lazygit: git as a dashboard rather than a command. `lg` is free — checked
+# against the ~400 oh-my-zsh already defines.
+command -v lazygit &>/dev/null && alias lg='lazygit'
+
 # --- editing ----------------------------------------------------------------
 # Single-quoted so $EDITOR is resolved when run, not when this file is read.
 alias zshc='$EDITOR ~/.zshrc'
