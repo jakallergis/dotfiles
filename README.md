@@ -111,6 +111,18 @@ ahist              # fuzzy-pick from everyone's shell history, agents included
 als <word>         # search the ~400 aliases oh-my-zsh already defined
 ```
 
+Inside tmux, no prefix needed (needs iTerm2's Left Option set to `Esc+`):
+
+```
+Option-d / Shift-Option-d   split right / below
+Option-arrows               move between panes
+Option-z                    zoom this pane, toggle
+Option-s                    pick a session
+Option-=                    cycle layouts
+Ctrl-b d                    detach, leave everything running
+Ctrl-b ?                    every other binding
+```
+
 ---
 
 # How it works
@@ -349,6 +361,49 @@ has one, `cat` if it does not.
 `~/.tmux.conf` and would start silently unconfigured. mise pins 3.7, so this is
 theoretical here; `tmux -V` if you ever meet a tmux that arrived some other way.
 
+**Nine keys need no prefix at all.** They are the ones that have to be as fast
+as the terminal's own, and they are shaped after the iTerm2 shortcuts they
+replace — one modifier along, because **tmux can never see Cmd**: macOS
+terminals do not transmit it.
+
+| | | replaces |
+| --- | --- | --- |
+| <kbd>Option</kbd><kbd>d</kbd> / <kbd>Shift</kbd><kbd>Option</kbd><kbd>d</kbd> | split right / below | iTerm2 ⌘D / ⇧⌘D |
+| <kbd>Option</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>↑</kbd><kbd>→</kbd> | move between panes | iTerm2 ⌘⌥-arrows |
+| <kbd>Option</kbd><kbd>z</kbd> | zoom toggle | |
+| <kbd>Option</kbd><kbd>s</kbd> | session picker | |
+| <kbd>Option</kbd><kbd>=</kbd> | cycle layouts | |
+
+**This needs one iTerm2 setting, and it is not tracked here.** Settings →
+Profiles → Keys → **Left Option Key: `Esc+`**, leaving Right Option on `Normal`
+so it still types é and —. Under the macOS default the Option key *composes
+characters* (`Option-z` → `Ω`) and tmux never receives Meta at all, so every key
+above — and tmux's own stock <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>Option-1…7</kbd>
+layout keys — is silently dead. On Linux, Alt already works. Every root key has
+a prefixed twin, so where Meta is unavailable nothing becomes unreachable; it
+just costs a <kbd>Ctrl</kbd>+<kbd>b</kbd>.
+
+**A root binding is taken from every program inside tmux, forever.** So each was
+checked against a live `bindkey` before being taken, rather than assumed:
+
+| key | what it shadows in zsh | |
+| --- | --- | --- |
+| `M-d` `M-D` | `kill-word` | the only real loss — `Ctrl-w` still deletes backwards |
+| `M-Left`…`M-Right` | nothing, `undefined-key` | word movement here is on Ctrl-arrows and `M-b`/`M-f` |
+| `M-z` | `execute-last-named-cmd` | |
+| `M-s` | `spell-word` | |
+| `M-=` | nothing, `undefined-key` | |
+
+`M-Enter` was the obvious pick for a layout key and was rejected: **Claude Code
+uses Option-Enter for a newline**, and a root binding would have swallowed it in
+every pane.
+
+**Shift-Option-Space cannot be bound at all.** A terminal sends the same byte
+for Space and Shift-Space, so tmux receives plain `M-Space` either way — `cat -v`
+and pressing both proves it in five seconds. Separating them needs CSI-u
+extended keys enabled in *both* iTerm2 and tmux, which changes how every key is
+reported and upsets other TUIs. Hence `M-=`, for "make the panes equal".
+
 The prefix is the stock <kbd>Ctrl</kbd>+<kbd>b</kbd>, so anything you read
 elsewhere applies as written. What is not stock:
 
@@ -359,7 +414,7 @@ elsewhere applies as written. What is not stock:
 | <kbd>H</kbd> <kbd>J</kbd> <kbd>K</kbd> <kbd>L</kbd> | resize |
 | <kbd>Tab</kbd> | last window (`l` used to be this, and `hjkl` wanted it) |
 | <kbd>r</kbd> | reload `tmux.conf` |
-| <kbd>M</kbd> | toggle the mouse — off is how you get native terminal selection back |
+| <kbd>m</kbd> | toggle the mouse — off is how you get native terminal selection back |
 | <kbd>S</kbd> | flag this window once it has been quiet for 30s: *tell me when the agent stops typing* |
 | <kbd>v</kbd> <kbd>y</kbd> in copy mode | select / copy, vi keys |
 
