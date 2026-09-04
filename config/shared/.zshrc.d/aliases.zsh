@@ -6,11 +6,14 @@
 
 # --- listing ----------------------------------------------------------------
 # eza when it is installed, otherwise plain ls with per-OS colour flags.
+# --icons=auto draws a per-filetype glyph, and only when writing to a terminal,
+# so `ls | grep` stays clean. Needs the Nerd Font from steps/shared/30-fonts.sh;
+# without it every entry gets a tofu box instead.
 if command -v eza &>/dev/null; then
-  alias ls='eza --group-directories-first'
-  alias ll='eza --long --all --group --git --group-directories-first'
-  alias la='eza --all --group-directories-first'
-  alias lt='eza --tree --level=2 --group-directories-first'
+  alias ls='eza --icons=auto --group-directories-first'
+  alias ll='eza --icons=auto --long --all --group --git --group-directories-first'
+  alias la='eza --icons=auto --all --group-directories-first'
+  alias lt='eza --icons=auto --tree --level=2 --group-directories-first'
 elif [[ $OSTYPE == darwin* ]]; then
   alias ls='ls -FG'
   alias ll='ls -Alh'

@@ -27,6 +27,23 @@ git:
       colorArg: always
       command: delta --paging=never
 
+  # Commits panel: include commits from every branch, not only the ancestry of
+  # the one checked out. Without this, a branch you are not on is simply absent
+  # from the graph — which is what makes it unreadable, because there is nothing
+  # to branch *from*. Equivalent to `git log --all`; Ctrl-l toggles it live.
+  log:
+    showWholeGraph: true
+
+  # The Status panel's `a` view (all-branches log graph). lazygit's default
+  # passes --pretty=medium, which spends five lines per commit and pushes the
+  # graph itself off the screen; one line each is what makes a graph readable.
+  #
+  # `a` cycles through this list, so the verbose default is kept as the second
+  # entry rather than thrown away — press it twice for the full-detail version.
+  allBranchesLogCmds:
+    - git log --graph --all --color=always --abbrev-commit --decorate --date=relative --pretty=format:'%C(auto)%h%d %s %C(cyan)%an%C(reset) %C(green)%ar'
+    - git log --graph --all --color=always --abbrev-commit --decorate --date=relative --pretty=medium
+
 update:
   # mise owns this binary and pins it in the tracked mise config.toml, so a
   # self-update prompt could only ever produce drift between the two.
@@ -35,7 +52,8 @@ update:
 # The "Thanks for using lazygit" panel that greets every fresh config.
 disableStartupPopups: true
 
-# Not set on purpose: gui.nerdFontsVersion. It would draw file-type and branch
-# icons, but iTerm2 here runs MesloLGLForPowerline — a Powerline font, which has
-# the arrows and not the Nerd Font icon set — so enabling it produces tofu.
-# Install a Nerd Font first, then set it to "3".
+gui:
+  # File-type and branch icons. Needs a Nerd Font in the terminal, which
+  # steps/shared/30-fonts.sh installs (MesloLGS NF, patched to Nerd Fonts v3).
+  # Set your terminal's font to it or every icon here renders as a tofu box.
+  nerdFontsVersion: "3"

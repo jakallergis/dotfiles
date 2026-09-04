@@ -95,7 +95,8 @@ to `~/.dotfiles-backup/` first.
 | **sessions** | tmux, auto-attached on any machine you reach over ssh — [see below](#tmux) |
 | **git** | tracked identity, ssh commit signing via 1Password, [delta](https://github.com/dandavison/delta) diffs, [lazygit](https://github.com/jesseduffield/lazygit) on `lg` |
 | **editor** | [druk](https://druk.letstri.dev), falling back to vim |
-| **macOS** | Homebrew, a Finder/Dock `defaults` pass, Hack and Meslo fonts |
+| **fonts** | MesloLGS NF fetched from upstream, plus the vendored Hack and Meslo Powerline |
+| **macOS** | Homebrew, a Finder/Dock `defaults` pass |
 
 ## Day to day
 
@@ -458,10 +459,23 @@ git:
       command: delta --paging=never
 ```
 
-**`gui.nerdFontsVersion` is deliberately unset.** iTerm2 here runs
-MesloLGLForPowerline, which is a *Powerline* font — it has the arrows but not
-the Nerd Font icon set — so turning icons on renders tofu. Install a Nerd Font
-first, then set it to `"3"`.
+**Branch names in the graph took some finding.** The Commits panel shows a
+`(branch)` label against each ref — but *only in fullscreen screen mode*. This
+is not a width problem: at 240 columns, and with `sidePanelWidth` pushed to
+`0.45`, it still renders the compact form. <kbd>+</kbd> cycles normal → half →
+full and the labels appear; <kbd>_</kbd> goes back. Two config keys help:
+
+| | |
+| --- | --- |
+| `git.log.showWholeGraph: true` | include commits from branches you are not on. Without it they are absent entirely, so there is nothing to branch *from* and the graph is a straight line. <kbd>Ctrl</kbd>+<kbd>l</kbd> toggles it live |
+| `git.allBranchesLogCmds` | the Status panel's <kbd>a</kbd> view. lazygit's default passes `--pretty=medium` — five lines per commit, which pushes the graph off screen. Replaced with a one-line format; `a` cycles the list so the verbose original is still there on a second press |
+
+<kbd>a</kbd> in the Status panel is the closest thing to `git log --graph --all
+--decorate`, and after that change it is readable. In the Commits panel,
+<kbd>*</kbd> highlights just the commits belonging to the current branch.
+
+`gui.nerdFontsVersion: "3"` draws file-type and branch icons. It depends on the
+terminal actually being set to a Nerd Font — see [Fonts](#fonts).
 
 `update.method: never`, because mise owns the binary and pins it in the tracked
 mise config; a self-update prompt could only produce drift between the two.
@@ -471,6 +485,68 @@ repos, but keyboard-only and fewer operations) and **gitu** (a magit clone —
 one scrolling buffer, excellent if you come from Emacs, almost no visual
 affordance otherwise). All three are in mise's registry, so swapping is a
 one-line diff.
+
+## Fonts
+
+`steps/shared/30-fonts.sh` installs from two places, and the split is the whole
+design:
+
+| | |
+| --- | --- |
+| `fonts/` | committed to this repo, copied as they are (Hack, Meslo Powerline) |
+| MesloLGS NF | four weights fetched from `romkatv/powerlevel10k-media` |
+
+**MesloLGS NF is fetched, not committed, and that is deliberate.** It is ~10MB
+across four weights — four times everything else in `fonts/` put together.
+Committing it would put that in every clone forever, including the Coder
+workspaces that re-clone this repo on each create and have **no display to
+render a font on**. `install.sh` already needs the network for oh-my-zsh, p10k,
+mise and druk, so fetching costs a machine running this step nothing it does not
+already have. It comes from romkatv's own media repo rather than the Nerd Fonts
+release because those are the exact four files `p10k configure` offers to
+install, so a machine set up either way ends up identical.
+
+**Each download lands via `mktemp` and is moved into place only on success.**
+Writing straight to the destination leaves a truncated font behind when the
+network drops, and the "already there?" test at the top of the loop would then
+skip it on every future run — a broken font that repairs itself never.
+
+**Setting the terminal to it is manual, and cannot be otherwise.** The font is a
+preference of iTerm2 / Quake / whatever is drawing the pixels, not of anything
+this repo owns:
+
+> iTerm2 → Settings → Profiles → Text → Font → **MesloLGS NF**
+
+Until that is done the font is installed and unused, and everything below will
+render tofu boxes instead of icons.
+
+Three tracked settings depend on it, so they move together:
+
+| | |
+| --- | --- |
+| `.p10k.zsh` | `POWERLEVEL9K_MODE=nerdfont-v3` |
+| `.config/lazygit/config.yml` | `gui.nerdFontsVersion: "3"` |
+| `.zshrc.d/aliases.zsh` | `eza --icons=auto` on `ls`/`ll`/`la`/`lt` |
+
+`--icons=auto` rather than `always` on purpose: eza then draws glyphs only when
+writing to a terminal, so `ls | grep` and anything reading the output stays
+clean.
+
+**The p10k edit is two lines, by hand, and worth knowing about.** `p10k
+configure` decides `POWERLEVEL9K_MODE` from the "can you see this icon?"
+question, and it had been answered *no* — leaving `mode=powerline` and an
+uncommented `POWERLEVEL9K_LOCK_ICON='∅'` substituting a plain glyph for one the
+font lacked. Both were changed back toward the upstream rainbow template rather
+than regenerating the file, which would have meant re-answering the whole wizard
+and re-deciding the styling. Diffing against
+`~/.oh-my-zsh/custom/themes/powerlevel10k/config/p10k-rainbow.zsh` is how you
+tell a wizard font-fallback from a template default — the empty
+`VCS_BRANCH_ICON` and `'?'` untracked marker look like fallbacks and are not;
+they are identical upstream. Note the template still says the older
+`nerdfont-complete` (the v2 glyph positions); MesloLGS NF is patched to v3.
+
+Re-running `p10k configure` regenerates the file **through the symlink, into
+this repo**, so it shows up as a diff to commit — same as `mise use -g`.
 
 ## Startup budget
 

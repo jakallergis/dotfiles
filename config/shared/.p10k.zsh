@@ -112,7 +112,16 @@
   )
 
   # Defines character set used by powerlevel10k. It's best to let `p10k configure` set it for you.
-  typeset -g POWERLEVEL9K_MODE=powerline
+  #
+  # Hand-edited from `powerline` to `nerdfont-v3`, which is the one thing the
+  # wizard decides from the "do you see this icon?" question rather than from
+  # taste. steps/shared/30-fonts.sh now installs MesloLGS NF, so the answer is
+  # yes. (The upstream rainbow template says `nerdfont-complete`, the older name
+  # for the v2 glyph positions; MesloLGS NF is patched to v3.)
+  #
+  # Re-running `p10k configure` regenerates this whole file — through the
+  # symlink, into this repo — and will ask the font question again.
+  typeset -g POWERLEVEL9K_MODE=nerdfont-v3
   # When set to `moderate`, some icons will have an extra space after them. This is meant to avoid
   # icon overlap when using non-monospace fonts. When set to `none`, spaces are not added.
   typeset -g POWERLEVEL9K_ICON_PADDING=none
@@ -293,7 +302,10 @@
 
   # The default icon shown next to non-writable and non-existent directories when
   # POWERLEVEL9K_DIR_SHOW_WRITABLE is set to v3.
-  typeset -g POWERLEVEL9K_LOCK_ICON='∅'
+  # Commented out again, as it is in the upstream template: the wizard only
+  # uncommented it to substitute a plain ∅ for a Nerd Font glyph this font
+  # did not have. With nerdfont-v3 above, p10k's own icon is available.
+  # typeset -g POWERLEVEL9K_LOCK_ICON='∅'
 
   # POWERLEVEL9K_DIR_CLASSES allows you to specify custom icons and colors for different
   # directories. It must be an array with 3 * N elements. Each triplet consists of:
