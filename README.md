@@ -90,10 +90,10 @@ to `~/.dotfiles-backup/` first.
 | | |
 | --- | --- |
 | **shell** | zsh + [oh-my-zsh](https://ohmyz.sh) + [powerlevel10k](https://github.com/romkatv/powerlevel10k), autosuggestions, syntax highlighting |
-| **tools** | one [mise](https://mise.jdx.dev) config installs node, bun, python, ruby, and `atuin bat delta eza fd fzf lazygit tmux zoxide` |
+| **tools** | one [mise](https://mise.jdx.dev) config installs node, bun, python, ruby, and `atuin bat delta eza fd fzf gh lazygit tmux zoxide` |
 | **history** | [atuin](https://atuin.sh) on <kbd>Ctrl</kbd>+<kbd>R</kbd>, plus `ahist` for a cross-author fuzzy picker |
 | **sessions** | tmux, auto-attached on any machine you reach over ssh — [see below](#tmux) |
-| **git** | tracked identity, ssh commit signing via 1Password, [delta](https://github.com/dandavison/delta) diffs, [lazygit](https://github.com/jesseduffield/lazygit) on `lg` |
+| **git** | tracked identity, `gh`, ssh commit signing via 1Password, [delta](https://github.com/dandavison/delta) diffs, [lazygit](https://github.com/jesseduffield/lazygit) on `lg` |
 | **editor** | [druk](https://druk.letstri.dev), falling back to vim |
 | **fonts** | MesloLGS NF fetched from upstream, plus the vendored Hack and Meslo Powerline |
 | **macOS** | Homebrew, a Finder/Dock `defaults` pass |
@@ -254,8 +254,8 @@ Eight numbered sections, and three of the orderings are load-bearing:
 1. **p10k instant prompt** — must be first; nothing above it may print or read.
 2. **Homebrew shellenv** — must precede any `command -v` looking for a
    brew-installed tool, or that block silently no-ops. Defensive at the moment:
-   everything `.zshrc` probes for now comes from mise, and brew is down to git,
-   gh and jq.
+   everything `.zshrc` probes for now comes from mise, and brew is down to git
+   and jq.
 3. Environment and PATH — `XDG_CONFIG_HOME` is exported here (see lazygit
    below for why that is not redundant); `typeset -U path` dedupes.
 4. oh-my-zsh: settings, `fpath`, plugins, source. **`fpath` additions must come
