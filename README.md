@@ -425,9 +425,91 @@ Windows and panes are 1-indexed, scrollback is 100k lines, and
 `aggressive-resize` is on so one forgotten phone-sized client does not squeeze
 the laptop.
 
-**What tmux does not survive: the machine going away.** Coder workspaces
-auto-stop on idle, and that takes the tmux server and everything in it. See
-[Open decisions](#open-decisions).
+**Surviving the machine going away** is the one thing tmux cannot do alone —
+see [Reboot persistence](#reboot-persistence).
+
+## Reboot persistence
+
+A tmux server holds its sessions in memory, so a restart — or a Coder workspace
+auto-stopping — takes every pane with it. `steps/shared/35-tmux-plugins.sh`
+clones [tmux-resurrect](https://github.com/tmux-plugins/tmux-resurrect) (writes
+the layout to disk) and
+[tmux-continuum](https://github.com/tmux-plugins/tmux-continuum) (does it on a
+timer, and restores when the server next starts).
+
+Measured on a five-pane, two-window session killed with `kill-server`: sessions,
+windows, panes, layout, each pane's working directory and the visible scrollback
+all came back, in under a second.
+
+**No TPM.** The tmux plugin manager is the usual way in, but both plugins ship a
+standalone `.tmux` entrypoint, so two `run-shell` lines load them directly —
+the same call as the zsh plugins in step 22.
+
+**Section 7 of `tmux.conf` must stay last, and this is the trap.** continuum has
+no timer of its own: it schedules saves by prepending `#(continuum_save.sh)` to
+`status-right` and relying on tmux re-rendering the status line every
+`status-interval` seconds. Any `set -g status-right` *after* continuum loads
+wipes that, and automatic saving stops — silently, with `@continuum-restore`
+still reporting `on`. Check with:
+
+```sh
+tmux show-options -gv status-right | grep -c continuum_save   # must be 1
+```
+
+**It only saves while a client is attached**, for the same reason: tmux does not
+render a status line nobody is looking at. Verified — 40 seconds detached
+produced nothing, 80 seconds attached produced a save. In practice the last save
+reflects your last attached layout, which is the right one; before a planned
+restart, <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>Ctrl</kbd>+<kbd>s</kbd> forces one.
+<kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>Ctrl</kbd>+<kbd>r</kbd> restores by hand.
+
+**`t` starts the server before attaching, and cleans up after itself.** Starting
+a server is what triggers the restore, but a server with no sessions exits
+immediately, so the restore needs one to land beside. `t` makes a placeholder
+called `__restore` and drops it once the saved sessions are back. The name
+matters: the saved state usually *contains* a session called `main`, so a
+placeholder by that name would get killed instead of the restored one.
+
+**Restored Claude panes open the session picker, not `--continue`.** This looks
+like the wrong choice for about ten seconds. Claude keys its history by
+directory: everything started in `~/Git/dev-hub` lands in the one bucket
+`~/.claude/projects/-Users-Giannis-Git-dev-hub`. So `--continue` resolves to that
+directory's newest transcript — and when several panes share a directory, which
+is the normal way to work here, all of them would reopen the *same* conversation
+and start writing over each other.
+
+`claude --resume` with no argument opens the picker instead, so each pane asks
+which conversation belongs in it. One keypress per pane, and it cannot silently
+put four clients on one transcript.
+
+The match is against the `ps` command line, **not** `#{pane_current_command}`,
+and that distinction is load-bearing here. `~/.local/bin/claude` is a symlink to
+a version-numbered binary, so tmux reports the pane as `2.1.263` while `ps` still
+shows `claude`. A rule written against `pane_current_command` would look right,
+work once, and break at the next Claude Code update.
+
+Nothing else is restored: a dev server or a build is gone, by design.
+
+**`steps/macos/36-tmux-boot.sh` brings the server up at login**, so the sessions
+are already restored before a terminal is opened and `t` attaches instantly. It
+writes two generated files — `~/.local/bin/dotfiles-tmux-boot` and a
+`~/Library/LaunchAgents` plist — the same tracked-intent / generated-fact split
+as `~/.config/git/config` in step 40. Neither can be portable: the plist needs an
+absolute path and the script needs a hardcoded `PATH`, because launchd hands a
+job `/usr/bin:/bin:/usr/sbin:/sbin` and nothing else. tmux is found through
+mise's `latest` symlink, which mise repoints on upgrade.
+
+**continuum's own `@continuum-boot` is deliberately not used.** On macOS it
+drives AppleScript that opens Terminal.app — iTerm2 only via a profile that must
+be named `Tmux` — resizes the window to fill the desktop, and types a bare
+`tmux`, which starts a session *beside* the restored ones: the exact thing `t`
+exists to prevent. It also needs Automation permission. The step does the one
+useful part and nothing else.
+
+```sh
+launchctl print gui/$(id -u)/com.jakallergis.tmux     # check it is loaded
+launchctl bootout gui/$(id -u)/com.jakallergis.tmux   # turn it off
+```
 
 ## lazygit
 
@@ -633,12 +715,10 @@ not touch your rc files, put decoy `.zshrc`/`.bashrc`/`.profile` in a fake
   ship it (the bundle only has `op-ssh-sign`). `1password.zsh` defines helpers
   and exports nothing, so it stays inert until `op` is installed by hand. On a
   headless box it needs a service account token.
-- **No tmux-resurrect / tmux-continuum yet.** They would bring back layouts and
-  scrollback after a Coder workspace auto-stops, which is the one failure tmux
-  cannot absorb on its own. They would also bring TPM, a plugin manager and a
-  clone step, and they restore *layout* rather than running processes — an agent
-  mid-task is gone either way. Worth revisiting once the workspaces have shown
-  how often they actually stop.
+- **tmux-resurrect / tmux-continuum are in** — see
+  [Reboot persistence](#reboot-persistence). The objection recorded here was
+  that they drag in TPM; they do not, both ship a standalone `.tmux` entrypoint
+  that `run-shell` loads directly.
 - **The prefix is stock <kbd>Ctrl</kbd>+<kbd>b</kbd>.** Chosen so that every
   tmux answer on the internet applies unedited, and so <kbd>Ctrl</kbd>+<kbd>a</kbd>
   stays beginning-of-line in zsh. One line in `tmux.conf` to change your mind.

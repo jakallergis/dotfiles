@@ -38,6 +38,26 @@ t() {
 
   local name=${1:-}
 
+  # No server running at all — the state after a reboot. Starting a server is
+  # what triggers continuum's restore, but a server with no sessions exits
+  # immediately, so the restore has to land beside one. Hence a placeholder,
+  # dropped again once the saved sessions are back.
+  #
+  # The name is `__restore`, not `main`, because the saved state may well
+  # contain a session called `main` — killing `=main` afterwards would then
+  # destroy the restored one instead of the placeholder.
+  if ! tmux has-session 2>/dev/null &&
+     [[ -e ${XDG_DATA_HOME:-$HOME/.local/share}/tmux/resurrect/last ]]; then
+    tmux new-session -d -s __restore 2>/dev/null
+    local i
+    for i in {1..24}; do          # continuum restores in the background
+      (( $(tmux list-sessions 2>/dev/null | wc -l) > 1 )) && break
+      sleep 0.25
+    done
+    (( $(tmux list-sessions 2>/dev/null | wc -l) > 1 )) &&
+      tmux kill-session -t '=__restore' 2>/dev/null
+  fi
+
   if [[ -n $TMUX ]]; then
     [[ -n $name ]] || {
       print -u2 't: already in a session. `t <name>` switches, Ctrl-b d detaches.'
