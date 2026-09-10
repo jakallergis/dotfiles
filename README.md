@@ -463,6 +463,40 @@ reflects your last attached layout, which is the right one; before a planned
 restart, <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>Ctrl</kbd>+<kbd>s</kbd> forces one.
 <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>Ctrl</kbd>+<kbd>r</kbd> restores by hand.
 
+**Closing every pane on purpose is not undone at the next start.** Persistence
+that cannot tell "the machine took my panes away" from "I dismissed them" is
+just an inability to quit: `exit` out of every pane, run `t`, and the last
+periodic save rebuilds all of them. `config/shared/.config/tmux/forget-on-teardown.sh`
+runs from a `session-closed` hook and, when no sessions are left, renames the
+saved state out of the way so the next start begins clean.
+
+Two things make that work, and **neither half works alone**:
+
+| | |
+| --- | --- |
+| `set-hook -g session-closed` | fires the script as sessions go away |
+| `set -g exit-empty off` | without it the hook never runs for the *last* session — the one that matters. Verified: with tmux's default `exit-empty on`, the hook fires closing session 2 of 2 and is simply skipped for the last one, because the server is already shutting down |
+
+The script then calls `tmux kill-server` itself, so the empty server does not
+linger — `exit-empty off` exists only to buy the hook a moment to run.
+
+It renames rather than deletes: `last` is a symlink and the timestamped state
+file behind it is untouched, so `mv last.closed last` in the resurrect directory
+undoes an accidental teardown. It also asks tmux for `@resurrect-dir` rather
+than assuming the default path, which is what makes it testable against a
+throwaway save directory.
+
+Verified both ways round: exiting every pane leaves `last.closed` and a fresh
+`main` next time, while `kill -9` on the server leaves `last` intact and the
+panes come back with their directories.
+
+**continuum does nothing when a second tmux server is running.** Both
+`continuum_save.sh` and `continuum_restore.sh` bail out on
+`another_tmux_server_running`, deliberately, so two environments cannot
+overwrite each other's state. Worth knowing before concluding the config is
+broken — it is also what makes testing this on a machine with a live session
+misleading, since a throwaway `tmux -L test` server counts.
+
 **`t` starts the server before attaching, and cleans up after itself.** Starting
 a server is what triggers the restore, but a server with no sessions exits
 immediately, so the restore needs one to land beside. `t` makes a placeholder
