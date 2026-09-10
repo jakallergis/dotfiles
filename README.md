@@ -441,6 +441,43 @@ nothing — the picker looks perfect and Enter appears to do nothing at all.
 popup, which is about to close, so switching it moves nothing the user can see.
 The client name has to be captured at binding time and passed down.
 
+**A Claude on the far side of an ssh is listed too, without asking it
+anything.** `claude agents --json` only sees local processes, so a pane ssh'd
+into another machine would contribute nothing — except that the remote Claude
+is already painting its interface onto a pane tmux holds locally. Reading that
+costs no network, no auth and no latency, and works identically for
+`docker exec` or anything else filling a pane from somewhere unaskable.
+
+Detection is by on-screen text: the footer (`? for shortcuts`, or the auto-mode
+line when auto mode is on) marks the pane as Claude, and `esc to interrupt`
+marks it busy. Measured against known panes — a busy one printed it twice, an
+idle one not at all. Only panes with no local Claude on their tty are scanned,
+so nothing is listed twice. The status is inferred, so it shows as `idle?` and
+cannot separate "waiting for you" from "finished its turn", and the label is
+the ssh destination pulled from the process arguments:
+
+```
+● idle?   bike-service:1.1    ssh ai-workstation      -
+```
+
+Querying the remote properly — `ssh host 'claude agents --json'` — was
+considered and rejected. It needs `ControlMaster` in `~/.ssh/config` or every
+popup opens a connection and may trigger a 1Password prompt; `ssh host cmd`
+runs a non-interactive shell so `~/.local/bin/claude` is off `PATH`; and it
+needs a `ConnectTimeout` or one unreachable host hangs the keystroke. The
+decisive objection is that the extra precision has nowhere to go: the remote
+runs its own tmux, so Enter can only ever land you in the ssh pane anyway.
+
+**A `case` inside `$( … )` needs a leading `(` on its patterns.** Without it the
+pattern's closing `)` is read as the end of the command substitution, and the
+error surfaces at the `;;` several lines later — nowhere near the cause. This
+cost a bisect to find.
+
+**The picker takes ~480ms, and it is not the scraping.** `claude agents --json`
+alone is 452ms — spawning the Claude binary. The pane captures add 33ms, tmux
+23ms, `ps` 81ms. Nothing to optimise short of caching a status that would then
+be wrong.
+
 **Three things about drawing fzf inside `display-popup`**, all of which looked
 like layout problems and were not:
 

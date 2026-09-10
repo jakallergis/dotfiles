@@ -116,15 +116,92 @@ else
   list_w=$(( cols - 3 ))
 fi
 
+# --- Claude on the far side of an ssh -----------------------------------------
+# `claude agents --json` only knows about local processes, so a pane ssh'd into
+# another machine contributes nothing — even though the Claude over there is
+# painting its interface onto a pane tmux already holds locally. Reading that
+# costs nothing: no network, no auth, no latency, and it works identically for
+# `docker exec` or anything else that fills a pane from somewhere unaskable.
+#
+# The trade is that the status is inferred from what is on screen, so it is
+# marked with a `?` and cannot separate "waiting for you" from "finished its
+# turn". Measured against known panes: a busy Claude prints "esc to interrupt",
+# an idle one does not, and both carry the footer matched below.
+#
+# Only panes with no local Claude on their tty are scanned, so nothing is
+# listed twice and the usual case does no extra work.
+claude_ttys=$(printf '%s\n' "$rows" | cut -f1 | while IFS= read -r apid; do
+  ps -o tty= -p "$apid" 2>/dev/null | tr -d ' '
+done)
+
+scraped=$(tmux list-panes -a \
+    -F '#{pane_id}	#{pane_tty}	#{session_name}:#{window_index}.#{pane_index}	#{pane_current_command}	#{pane_pid}' 2>/dev/null |
+  while IFS='	' read -r sp_id sp_tty sp_loc sp_cmd sp_pid; do
+    short=${sp_tty#/dev/}
+    printf '%s\n' "$claude_ttys" | grep -qxF "$short" && continue
+
+    screen=$(tmux capture-pane -pt "$sp_id" 2>/dev/null | sed 's/\x1b\[[0-9;]*[a-zA-Z]//g')
+    # Claude's footer reads "? for shortcuts", or the auto-mode line instead
+    # when auto mode is on. Matching either covers both.
+    printf '%s' "$screen" | grep -qE 'for shortcuts|auto mode on' || continue
+
+    if printf '%s' "$screen" | grep -q 'esc to interrupt'; then sp_st=busy; else sp_st=idle; fi
+
+    sp_label=$sp_cmd
+    # The leading ( on the pattern is load-bearing, not decoration. This case
+    # sits inside $( ... ), and the pattern's closing ) is otherwise read as
+    # the end of the command substitution — the parser then reports a syntax
+    # error at the ;; several lines later, nowhere near the actual cause.
+    case $sp_cmd in
+      (ssh | mosh)
+        # First non-option word that is not the argument of one, which is the
+        # destination for `ssh -l giannis ai-workstation` and friends.
+        host=$(ps -Ao ppid=,command= | awk -v pp="$sp_pid" '$1==pp {
+          for (i = 3; i <= NF; i++) {
+            if ($i == "-l" || $i == "-p" || $i == "-i" || $i == "-o" || $i == "-F") { i++; continue }
+            if (substr($i, 1, 1) != "-") { print $i; exit }
+          }
+        }')
+        [ -n "$host" ] && sp_label="$sp_cmd $host"
+        ;;
+    esac
+    printf 'S\t%s\t%s\t%s\t%s\n' "$sp_id" "$sp_loc" "$sp_st" "$sp_label"
+  done)
+
 table=$({
   ps -Ao pid=,tty= 2>/dev/null | awk '{ print "P\t" $1 "\t" $2 }'
   tmux list-panes -a -F 'T	#{pane_tty}	#{pane_id}	#{session_name}:#{window_index}.#{pane_index}' 2>/dev/null
   printf '%s\n' "$seen"
   printf '%s\n' "$rows" | sed 's/^/A\t/'
+  printf '%s\n' "$scraped"
 } | awk -F'\t' -v now="$(date +%s)" -v home="$HOME" -v w="$list_w" '
+  # Columns sized to fill w exactly. Fixed part: dot+space, status+space,
+  # space+age. Whatever is left goes to the name, and to the tmux location too
+  # once there is enough room for it to be worth showing.
+  function emit(rank, dot, word, where, name, age, id,    fixed, show_loc, loc_w, name_w) {
+    fixed = 2 + 8 + 4
+    show_loc = (w - fixed >= 38)
+    loc_w  = show_loc ? 18 : 0
+    name_w = w - fixed - (show_loc ? loc_w + 1 : 0)
+    if (name_w < 8) name_w = 8
+    # Plain ".." rather than an ellipsis: the padding counts bytes, so a
+    # multi-byte character in the marker knocks the column out of alignment.
+    if (length(name) > name_w) name = substr(name, 1, name_w - 2) ".."
+    if (show_loc && length(where) > loc_w) where = substr(where, 1, loc_w - 2) ".."
+    if (show_loc)
+      printf "%d\t%s %-7s \033[36m%-*s\033[0m %-*s \033[90m%3s\033[0m\t%s\n", rank, dot, word, loc_w, where, name_w, name, age, id
+    else
+      printf "%d\t%s %-7s %-*s \033[90m%3s\033[0m\t%s\n", rank, dot, word, name_w, name, age, id
+  }
   $1 == "P" { tty_of[$2] = $3; next }
   $1 == "T" { sub(/^\/dev\//, "", $2); pane[$2] = $3; loc[$2] = $4; next }
   $1 == "M" { seen_at[$2] = $3; next }
+  # Inferred from the screen, so the word carries a ? and there is no age.
+  $1 == "S" {
+    if ($4 == "busy") emit(3, "\033[31m●\033[0m", "busy?", $3, $5, "-", $2)
+    else              emit(1, "\033[32m●\033[0m", "idle?", $3, $5, "-", $2)
+    next
+  }
   $1 == "A" {
     pid = $2; status = $3; sid = $4; dir = $5; name = $6
     tty = tty_of[pid]
@@ -140,27 +217,10 @@ table=$({
     where = (tty != "" && (tty in pane)) ? loc[tty] : "not in tmux"
     id    = (tty != "" && (tty in pane)) ? pane[tty] : ""
     # The name Claude gives a session beats the path here: the tmux location
-    # already names the project, and several panes in one directory — the usual
-    # shape of a dev-hub day — are indistinguishable by path and obvious by name.
+    # already names the project, and several panes in one directory are
+    # indistinguishable by path and obvious by name.
     if (name == "") { sub("^" home, "~", dir); name = dir }
-
-    # Columns sized to fill w exactly. Fixed part: dot+space, status+space,
-    # space+age. Whatever is left goes to name, and to the tmux location too
-    # once there is enough room for it to be worth showing.
-    fixed = 2 + 8 + 4
-    show_loc = (w - fixed >= 38)
-    loc_w  = show_loc ? 18 : 0
-    name_w = w - fixed - (show_loc ? loc_w + 1 : 0)
-    if (name_w < 8) name_w = 8
-    # Plain ".." rather than an ellipsis: the padding below counts bytes, so a
-    # multi-byte character in the marker knocks the column out of alignment.
-    if (length(name) > name_w) name = substr(name, 1, name_w - 2) ".."
-    if (show_loc && length(where) > loc_w) where = substr(where, 1, loc_w - 2) ".."
-
-    if (show_loc)
-      printf "%d\t%s %-7s \033[36m%-*s\033[0m %-*s \033[90m%3s\033[0m\t%s\n", rank, dot, word, loc_w, where, name_w, name, age, id
-    else
-      printf "%d\t%s %-7s %-*s \033[90m%3s\033[0m\t%s\n", rank, dot, word, name_w, name, age, id
+    emit(rank, dot, word, where, name, age, id)
   }
 ' | sort -n | cut -f2-)
 
