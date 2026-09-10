@@ -90,7 +90,7 @@ to `~/.dotfiles-backup/` first.
 | | |
 | --- | --- |
 | **shell** | zsh + [oh-my-zsh](https://ohmyz.sh) + [powerlevel10k](https://github.com/romkatv/powerlevel10k), autosuggestions, syntax highlighting |
-| **tools** | one [mise](https://mise.jdx.dev) config installs node, bun, python, ruby, and `atuin bat delta eza fd fzf gh lazygit tmux zoxide` |
+| **tools** | one [mise](https://mise.jdx.dev) config installs node, bun, python, ruby, and `atuin bat delta eza fd fzf gh jq lazygit tmux zoxide` |
 | **history** | [atuin](https://atuin.sh) on <kbd>Ctrl</kbd>+<kbd>R</kbd>, plus `ahist` for a cross-author fuzzy picker |
 | **sessions** | tmux, auto-attached on any machine you reach over ssh — [see below](#tmux) |
 | **git** | tracked identity, `gh`, ssh commit signing via 1Password, [delta](https://github.com/dandavison/delta) diffs, [lazygit](https://github.com/jesseduffield/lazygit) on `lg` |
@@ -119,7 +119,8 @@ Inside tmux, no prefix needed (needs iTerm2's Left Option set to `Esc+`):
 Option-d / Shift-Option-d   split right / below
 Option-arrows               move between panes
 Option-z                    zoom this pane, toggle
-Option-s                    pick a session
+Option-s                    which Claude is waiting on me? (jumps to it)
+Option-S                    pick a session
 Option-=                    cycle layouts
 Ctrl-b d                    detach, leave everything running
 Ctrl-b ?                    every other binding
@@ -374,7 +375,8 @@ terminals do not transmit it.
 | <kbd>Option</kbd><kbd>d</kbd> / <kbd>Shift</kbd><kbd>Option</kbd><kbd>d</kbd> | split right / below | iTerm2 ⌘D / ⇧⌘D |
 | <kbd>Option</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>↑</kbd><kbd>→</kbd> | move between panes | iTerm2 ⌘⌥-arrows |
 | <kbd>Option</kbd><kbd>z</kbd> | zoom toggle | |
-| <kbd>Option</kbd><kbd>s</kbd> | session picker | |
+| <kbd>Option</kbd><kbd>s</kbd> | Claude status picker — [see below](#which-claude-is-waiting) | |
+| <kbd>Option</kbd><kbd>S</kbd> | session picker (also stock <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>s</kbd>) | |
 | <kbd>Option</kbd><kbd>=</kbd> | cycle layouts | |
 
 **This needs one iTerm2 setting, and it is not tracked here.** Settings →
@@ -394,7 +396,7 @@ checked against a live `bindkey` before being taken, rather than assumed:
 | `M-d` `M-D` | `kill-word` | the only real loss — `Ctrl-w` still deletes backwards |
 | `M-Left`…`M-Right` | nothing, `undefined-key` | word movement here is on Ctrl-arrows and `M-b`/`M-f` |
 | `M-z` | `execute-last-named-cmd` | |
-| `M-s` | `spell-word` | |
+| `M-s` `M-S` | `spell-word` | both spellings of it |
 | `M-=` | nothing, `undefined-key` | |
 
 `M-Enter` was the obvious pick for a layout key and was rejected: **Claude Code
@@ -406,6 +408,77 @@ for Space and Shift-Space, so tmux receives plain `M-Space` either way — `cat 
 and pressing both proves it in five seconds. Separating them needs CSI-u
 extended keys enabled in *both* iTerm2 and tmux, which changes how every key is
 reported and upsets other TUIs. Hence `M-=`, for "make the panes equal".
+
+### Which Claude is waiting
+
+<kbd>Option</kbd>+<kbd>s</kbd> opens `config/shared/.config/tmux/claude-status.sh`
+in a popup: every running Claude, ordered by who needs you, jumping to the pane
+on Enter.
+
+```
+● waiting  limbic-dev-hub:1.1   ~/Git/limbic-dev-hub    1m
+● busy     dotfiles:1.1         ~/dotfiles              0m
+```
+
+It took the key `choose-tree` had, because the plain session tree is already
+one keystroke away on the stock <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>s</kbd>, and
+this is the question actually worth a no-prefix key. `choose-tree` moved to
+<kbd>Option</kbd>+<kbd>S</kbd>.
+
+**Claude has no idea it is inside tmux**, so the join is three hops:
+`claude agents --json` gives a pid and a status, `ps` turns the pid into a tty,
+and `tmux list-panes` turns the tty into a pane. A Claude started outside tmux
+is still listed, marked `not in tmux`, and simply cannot be jumped to.
+
+**`display-popup -E` does not expand `#{...}` formats; `run-shell` does.** This
+is why the binding is a `run-shell` that opens the popup rather than a
+`display-popup` directly, and why the script has `--popup` and `--pick` modes.
+Bind the popup straight to the key and the script receives the literal string
+`#{q:client_name}`, tmux answers "can't find client", and the jump silently does
+nothing — the picker looks perfect and Enter appears to do nothing at all.
+
+**`switch-client` needs `-c`.** Inside a popup the current client *is* the
+popup, which is about to close, so switching it moves nothing the user can see.
+The client name has to be captured at binding time and passed down.
+
+**Three things about drawing fzf inside `display-popup`**, all of which looked
+like layout problems and were not:
+
+| | |
+| --- | --- |
+| `$FZF_DEFAULT_OPTS` leaks in | it carries `--height 60% --border` for inline use in a shell, where both are right. In a popup that leaves 40% of the box empty below the preview and draws a second border inside the popup's own. fzf reads the env var before the flags on the command line, so the script restates `--height=100% --border=none` to win |
+| `tput cols` lies | it reported **80** — the terminfo default — in a 154-column popup, because it never sees the popup. `$COLUMNS` is unset and `#{client_width}` gives the client *behind* the popup (170). Only `stty size` reports the popup: `26 154` |
+| fzf's responsive syntax misbehaved | `--preview-window='right,58%,<120(down,55%)'` forced the stacked alternative even in a 163-column popup on fzf 0.74.3. The script branches on width itself instead — a line longer and predictable |
+
+The split is **25/75** — the list carries little and the preview carries a whole
+conversation — and stacks below ~120 columns, where two panes do not fit.
+
+**The row columns are computed from the split width, not padded to a constant.**
+A fixed-width row leaves dead space in a wide split and gets ellipsised in a
+narrow one, and both were visible before. `list_w` is a quarter of the popup
+less fzf's two-column pointer gutter and the one-column border; status and age
+are fixed, and the name takes whatever is left. The tmux location column
+appears only when there is room for it — at 25% there is not, so `--preview`
+prints the location as a header above the pane contents instead. That is also
+why the preview is a mode of the script rather than an inline `--preview`
+string. `--list` overrides all of this and uses the full terminal, since it is
+printing to a shell rather than into a quarter of a popup.
+
+`claude agents --json` is the load-bearing dependency, and it is not in
+`claude --help`'s documented surface — treat it as liable to change. `jq` parses
+it, which is why jq moved from Homebrew into the mise list: it existed on the
+Mac and nowhere else, and `agents.sh`-style pipelines fail *silently* without
+it. `claude-status.sh --list` prints the same table with no terminal, which is
+both a shell convenience and how it gets tested.
+
+Considered and not adopted:
+[tmux-claude-session-manager](https://github.com/craftzdog/tmux-claude-session-manager),
+which is where this idea came from. Its picker half is excellent and works on
+plain panes; its other half puts each Claude in a dedicated detached
+`claude-<hash-of-cwd>` session, which collides twice here — an invisible
+detached session would keep `forget-on-teardown.sh` from ever seeing "no
+sessions left", and hashing by directory maps all four dev-hub panes onto one
+session, the same collision that ruled out `claude --continue`.
 
 The prefix is the stock <kbd>Ctrl</kbd>+<kbd>b</kbd>, so anything you read
 elsewhere applies as written. What is not stock:
