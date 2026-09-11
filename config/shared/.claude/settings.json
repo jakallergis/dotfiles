@@ -93,6 +93,8 @@
   "skipWorkflowUsageWarning": true,
   "theme": "dark",
   "verbose": true,
+  "inputNeededNotifEnabled": true,
+  "agentPushNotifEnabled": true,
   "voiceEnabled": true,
   "feedbackSurveyState": {
     "lastShownTime": 1754412157274
