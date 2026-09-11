@@ -121,6 +121,7 @@ Option-arrows               move between panes
 Option-z                    zoom this pane, toggle
 Option-s                    sessions and their windows
 Option-n                    new session, named
+Option-o                    nested tmux: pass everything to the inner one
 Option-drag                 select across panes (iTerm2 does it, not tmux)
 Option-=                    cycle layouts
 Ctrl-b d                    detach, leave everything running
@@ -433,6 +434,7 @@ terminals do not transmit it.
 | <kbd>Option</kbd><kbd>z</kbd> | zoom toggle | |
 | <kbd>Option</kbd><kbd>s</kbd> | sessions and their windows (also stock <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>s</kbd>) | |
 | <kbd>Option</kbd><kbd>n</kbd> | new session, named | |
+| <kbd>Option</kbd><kbd>o</kbd> | hand every key to a nested tmux, and back | |
 | <kbd>Option</kbd><kbd>=</kbd> | cycle layouts | |
 
 **This needs one iTerm2 setting, and it is not tracked here.** Settings →
@@ -454,11 +456,46 @@ checked against a live `bindkey` before being taken, rather than assumed:
 | `M-z` | `execute-last-named-cmd` | |
 | `M-s` | `spell-word` | |
 | `M-n` | `history-search-forward` | atuin on <kbd>Ctrl</kbd>+<kbd>R</kbd> replaced it |
+| `M-o` | nothing, `undefined-key` | |
 | `M-=` | nothing, `undefined-key` | |
 
 `M-Enter` was the obvious pick for a layout key and was rejected: **Claude Code
 uses Option-Enter for a newline**, and a root binding would have swallowed it in
 every pane.
+
+**Nested tmux: <kbd>Option</kbd>+<kbd>o</kbd> hands every key to the inner
+one.** ssh from a tmux pane into a machine with these same dotfiles and the
+remote tmux is unreachable by the root keys — a root binding is consumed by
+whichever tmux is outermost, before any prefix logic runs, so
+<kbd>Option</kbd>+<kbd>s</kbd> always opens the *local* picker.
+
+Double-tapping the prefix does not fix it. `Ctrl-b Ctrl-b` does reach the inner
+tmux, but only for its **prefix** bindings — `Ctrl-b Ctrl-b s` opens the remote
+session picker, `Ctrl-b Ctrl-b Option-s` cannot, because by then the outer has
+already eaten the Option key.
+
+So rather than forward one key at a time, the outer stops listening: an empty
+prefix plus a key table containing nothing but the way back.
+
+```tmux
+bind -n M-o    set prefix None \; set key-table off \; … \; refresh-client -S
+bind -T off M-o  set -u prefix \; set -u key-table \; … \; refresh-client -S
+```
+
+Everything then belongs to the inner tmux and the remote behaves exactly as it
+does locally, root bindings included. The status bar turns red and reads
+`PASSTHROUGH`, because a keystroke arriving at the wrong machine is the entire
+failure being fixed and there is no other way to tell which tmux is listening.
+
+**The overrides are session options, written without `-g` on purpose.** `set -u`
+then drops the override and falls back to the global this file already set.
+`set -gu` would instead erase the global and leave tmux's own default — the
+status line would come back grey and unstyled after the first toggle. Verified
+round-trip: `status-style` is still `bg=default fg=colour245` afterwards.
+
+Verified against a real nesting — an outer tmux whose pane runs a second tmux
+with this same config: <kbd>Option</kbd>+<kbd>s</kbd> listed `outer`, then
+after the toggle listed `inner`, then `outer` again.
 
 **Shift-Option-Space cannot be bound at all.** A terminal sends the same byte
 for Space and Shift-Space, so tmux receives plain `M-Space` either way — `cat -v`
