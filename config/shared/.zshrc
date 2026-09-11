@@ -78,7 +78,6 @@ plugins=(
     docker
     aliases
     colored-man-pages
-    command-not-found
     extract
     qrcode
     safe-paste
