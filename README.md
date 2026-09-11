@@ -517,6 +517,36 @@ elsewhere applies as written. What is not stock:
 | <kbd>S</kbd> | flag this window once it has been quiet for 30s: *tell me when the agent stops typing* |
 | <kbd>v</kbd> <kbd>y</kbd> in copy mode | select / copy, vi keys |
 
+**Hold the prefix and every pane names itself.** Pane numbers appear in the
+pane borders and the window index reverse-highlights in the status line, for
+`swap-pane -s 2 -t 3` and `swap-window`, where you need to know which is which
+while typing the command:
+
+```
+──────────────────────┬──────────────────────        ── 1 ─────────────────┬── 2 ─────────────────
+        (idle)         │                       →      (prefix held)        │
+```
+
+**This is a format conditional, not a key binding.** The obvious approach —
+rebinding the prefix itself to fire `display-panes` first —
+
+```tmux
+bind -n C-b display-panes -b \; switch-client -T prefix     # not done
+```
+
+puts the one key everything depends on at risk, to buy nothing:
+`#{?client_prefix,…}` already re-renders both the border and the status line
+the instant the prefix is pressed, exactly as the `PREFIX` marker does. It also
+could not be verified here, because a test harness cannot deliver `Ctrl-b` to a
+tmux nested inside a tmux that uses `Ctrl-b` as its own prefix.
+
+**It costs one row per pane along the top edge.** `pane-border-status top`
+gives those panes a border line they did not have — measured, 13 rows down to
+12. Panes further down reuse the divider that was already there.
+`set -g pane-border-status off` if that is not worth it; stock
+<kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>q</kbd> shows the same numbers on demand,
+much bigger, for free, and then jumps to whichever one you type.
+
 Windows and panes are 1-indexed, scrollback is 100k lines, and
 `aggressive-resize` is on so one forgotten phone-sized client does not squeeze
 the laptop.
