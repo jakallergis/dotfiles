@@ -10,6 +10,42 @@
 
 command -v tmux &>/dev/null || return
 
+# _tmux_free_session — the session you were last in that nobody is sitting in.
+#
+# Two ssh connections to the same box both ran `tmux attach`, which takes the
+# most recently used session whether or not a client is already on it. Two
+# clients on one session is a genuinely bad place to be: they share a current
+# window, so moving in one moves the other, and the window is sized for both at
+# once. So the rule is "resume what I left, unless someone is already in it" —
+# a dropped connection still lands back in its own work, a second connection
+# gets its own.
+_tmux_free_session() {
+  tmux list-sessions -F '#{session_attached} #{session_last_attached} #{session_name}' 2>/dev/null |
+    awk '$1 == 0 { print $2, $3 }' | sort -rn | head -1 | cut -d' ' -f2-
+}
+
+# _tmux_free_name — main, else main2, main3 … the first one not taken.
+_tmux_free_name() {
+  local n=main i=2
+  while tmux has-session -t "=$n" 2>/dev/null; do
+    n=main$i
+    (( i++ ))
+  done
+  print -r -- "$n"
+}
+
+# _tmux_resume — attach to a free session, or start one. Used by both `t` with
+# no argument and the auto-attach at the bottom.
+_tmux_resume() {
+  local free
+  free=$(_tmux_free_session)
+  if [[ -n $free ]]; then
+    tmux attach -t "=$free"
+  else
+    tmux new-session -s "$(_tmux_free_name)"
+  fi
+}
+
 # t — the only tmux command worth memorising.
 #
 #   t                attach to the session you were last in, or start `main`
@@ -71,9 +107,9 @@ t() {
   if [[ -n $name ]]; then
     tmux new-session -A -s "$name"    # -A: attach if it exists, create if not
   else
-    # Bare `tmux attach` picks the most recently attached session — which is
-    # exactly "carry on where I left off". Nothing there yet: start main.
-    tmux attach 2>/dev/null || tmux new-session -s main
+    # Carry on where you left off — but only into a session nobody else is
+    # already using. See _tmux_free_session.
+    _tmux_resume
   fi
 }
 
@@ -118,5 +154,5 @@ if _tmux_autoattach_wanted; then
   # instant tmux gave up, on the remote box, with no shell left to fix it from.
   # Run it normally and a failure just leaves you at a prompt. Detaching with
   # Ctrl-b d lands you at one too, which is also the friendlier ending.
-  tmux attach 2>/dev/null || tmux new-session -s main
+  _tmux_resume
 fi

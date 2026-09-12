@@ -370,6 +370,26 @@ inlined so that when a box does not attach you can run it and read `$?`.
 
 `DOTFILES_TMUX_AUTOATTACH=0` in `~/.zshrc.local` turns it off for one machine.
 
+**A second connection gets its own session, not a second seat in the first.**
+`tmux attach` takes the most recently used session whether or not a client is
+already in it, and two clients on one session is a bad place to be: they share
+a current window, so moving in one moves the other, and — before the fix above
+— the window was sized for both at once. ssh in twice and both connections
+became unusable.
+
+`_tmux_resume` attaches to the most recent session *with nobody in it*, and
+starts a new one (`main`, else `main2`, `main3`…) when they are all taken. A
+dropped connection still lands back in its own work, because that session is
+now unattached; a second simultaneous connection gets a fresh one. Verified
+both ways: two connections produced `main` at 200x49 and `main2` at 100x23,
+and after killing the first, reconnecting resumed `main` rather than joining
+`main2` or creating a third.
+
+tmux's own answer to "the same session in two places" is a session group —
+`tmux new-session -t main` shares the window list but keeps its own current
+window. That fixes the window-linking but not the sizing, and it is not what
+was wanted here: a second ssh is a second workspace, not a second view.
+
 **It is deliberately not `exec tmux`.** `exec` replaces the shell, so a typo in
 `tmux.conf` — or a missing terminfo entry — would end the ssh session the
 instant tmux gave up, on the remote box, with no shell left to fix it from.
@@ -547,9 +567,22 @@ gives those panes a border line they did not have — measured, 13 rows down to
 <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>q</kbd> shows the same numbers on demand,
 much bigger, for free, and then jumps to whichever one you type.
 
-Windows and panes are 1-indexed, scrollback is 100k lines, and
-`aggressive-resize` is on so one forgotten phone-sized client does not squeeze
-the laptop.
+Windows and panes are 1-indexed and scrollback is 100k lines.
+
+**Two clients at once needs two options, not one.** `aggressive-resize on`
+alone does nothing, which is easy to miss and was wrong here for a long time:
+tmux 3.x defaults `window-size` to `latest`, which sizes every window to the
+*most recently active* client whoever is actually viewing it, and that
+overrides aggressive-resize entirely. Measured with a 200x50 and a 100x24
+client on separate windows:
+
+| `window-size` | window the big client is on | window the small one is on |
+| --- | --- | --- |
+| `latest` (tmux default) | **100x23** | 100x23 |
+| `smallest` (set here) | **200x49** | 100x23 |
+
+`smallest` rather than `largest` so that when two clients genuinely are on the
+same window, both can see all of it.
 
 **Surviving the machine going away** is the one thing tmux cannot do alone —
 see [Reboot persistence](#reboot-persistence).
