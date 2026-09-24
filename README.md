@@ -106,6 +106,7 @@ t api              # attach or create the session `api`
 t ls               # what is running
 dots               # cd to this repo, wherever it was cloned
 mkcd foo/bar       # mkdir -p, then cd
+cdc [dir]          # cd (default ~), then clear the directory stack
 killport 3000      # kill whatever is holding the port
 gclone <url>       # clone, then cd into it
 lg                 # lazygit: stage, commit, rebase, stash, visually
@@ -284,6 +285,7 @@ Every block is guarded, so one shared `.zshrc` serves all three OSes. No
 | `options.zsh` | the few `setopt`s oh-my-zsh does not already set |
 | `aliases.zsh` | listing, bun, git, editing |
 | `functions.zsh` | `mkcd`, `killport`, `dots`, `gclone`, `ahist` |
+| `dirstack.zsh` | seeds `~` onto a new shell's stack, and `cdc` |
 | `fzf.zsh` | fd/bat wiring for previews |
 | `tmux.zsh` | `t`, and the remote auto-attach |
 | `1password.zsh` | `secret`, `oprun` — inert without the `op` CLI |
@@ -294,6 +296,24 @@ its upstream header intact. A multi-file project with its own releases (p10k
 
 **`zoxide init --cmd cd` renames its commands** — you get `cd`/`cdi`, not
 `z`/`zi`. `aliases.zsh` puts the original names back.
+
+**A new shell starts with `~` on the directory stack, on purpose.** oh-my-zsh
+sets `AUTO_PUSHD`, so every `cd` is a `pushd`. A new tmux pane inherits the
+directory it was split from (`-c '#{pane_current_path}'`) and iTerm2 does the
+same for a tab, so without this a shell starts deep in a project with an
+*empty* stack — and the first `cd ~` pushes the project onto it, meaning `popd`
+sends you back and the stack is never clean when you are where you want to be.
+Seeding the other way round gives both: you still land in the project, and one
+`popd` goes home leaving the stack empty. `cdc` clears it wherever you are, and
+plain `dirs -c` is the builtin underneath.
+
+`dirstack.zsh` does it by **assigning to the `dirstack` parameter**, not by
+`cd ~; dirs -c; cd -`. The round trip would end exactly where it started having
+added two entries to zoxide's frecency database and fired every chpwd hook
+twice, because `cd` here is zoxide's function. `dirstack` is tied to the real
+stack, so one assignment has no side effects. It is guarded on the stack being
+empty — re-sourcing `~/.zshrc` must not pile up a second `~` — and skipped when
+the shell already starts at home.
 
 **Check before adding an alias**: oh-my-zsh and its plugins define ~400 already.
 `als <word>` searches them. `aliases.zsh` marks its one deliberate shadow.
