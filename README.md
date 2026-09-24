@@ -117,9 +117,12 @@ Inside tmux, no prefix needed (needs iTerm2's Left Option set to `Esc+`):
 
 ```
 Option-d / Shift-Option-d   split right / below
-Option-arrows               move between panes
+Option-i / j / k / l        move between panes: up / left / down / right
+Option-up / down            move between panes, vertically
+Cmd-Option-arrows           move between panes (Option-left/right is word movement)
 Option-z                    zoom this pane, toggle
 Option-s                    sessions and their windows
+Shift-Option-up / down      previous / next session, by name
 Option-n                    new session, named
 Option-o                    nested tmux: pass everything to the inner one
 Option-drag                 select across panes (iTerm2 does it, not tmux)
@@ -323,6 +326,7 @@ a window or pane never triggers it.
 | --- | --- |
 | <kbd>Option</kbd><kbd>n</kbd> | new session, named |
 | <kbd>Option</kbd><kbd>s</kbd> | browse sessions and their windows, Enter to switch |
+| <kbd>Shift</kbd><kbd>Option</kbd><kbd>↑</kbd> / <kbd>↓</kbd> | previous / next session, no picker |
 | <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>c</kbd> | new window in this session |
 | <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>,</kbd> | rename this window |
 | <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>$</kbd> | rename this session |
@@ -442,7 +446,7 @@ has one, `cat` if it does not.
 `~/.tmux.conf` and would start silently unconfigured. mise pins 3.7, so this is
 theoretical here; `tmux -V` if you ever meet a tmux that arrived some other way.
 
-**Nine keys need no prefix at all.** They are the ones that have to be as fast
+**Seventeen keys need no prefix at all.** They are the ones that have to be as fast
 as the terminal's own, and they are shaped after the iTerm2 shortcuts they
 replace — one modifier along, because **tmux can never see Cmd**: macOS
 terminals do not transmit it.
@@ -450,9 +454,11 @@ terminals do not transmit it.
 | | | replaces |
 | --- | --- | --- |
 | <kbd>Option</kbd><kbd>d</kbd> / <kbd>Shift</kbd><kbd>Option</kbd><kbd>d</kbd> | split right / below | iTerm2 ⌘D / ⇧⌘D |
-| <kbd>Option</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>↑</kbd><kbd>→</kbd> | move between panes | iTerm2 ⌘⌥-arrows |
+| <kbd>Option</kbd><kbd>i</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> | move between panes: up / left / down / right | |
+| <kbd>Option</kbd><kbd>↑</kbd><kbd>↓</kbd> and <kbd>Cmd</kbd><kbd>Option</kbd><kbd>←</kbd><kbd>↓</kbd><kbd>↑</kbd><kbd>→</kbd> | the same, by arrow — see below | iTerm2 ⌘⌥-arrows |
 | <kbd>Option</kbd><kbd>z</kbd> | zoom toggle | |
 | <kbd>Option</kbd><kbd>s</kbd> | sessions and their windows (also stock <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>s</kbd>) | |
+| <kbd>Shift</kbd><kbd>Option</kbd><kbd>↑</kbd> / <kbd>↓</kbd> | previous / next session | |
 | <kbd>Option</kbd><kbd>n</kbd> | new session, named | |
 | <kbd>Option</kbd><kbd>o</kbd> | hand every key to a nested tmux, and back | |
 | <kbd>Option</kbd><kbd>=</kbd> | cycle layouts | |
@@ -466,18 +472,62 @@ layout keys — is silently dead. On Linux, Alt already works. Every root key ha
 a prefixed twin, so where Meta is unavailable nothing becomes unreachable; it
 just costs a <kbd>Ctrl</kbd>+<kbd>b</kbd>.
 
+**Two of the four pane arrows are Cmd-Option, and that is iTerm2's doing.** The
+**Natural Text Editing** preset — likely on, since it is how most people get
+⌥←→ to move by word — remaps <kbd>Option</kbd><kbd>←</kbd>/<kbd>→</kbd> to
+`Esc b` / `Esc f`. tmux has no `M-b`/`M-f` binding, so those pass straight
+through to zsh's `backward-word`/`forward-word` and the `M-Left`/`M-Right`
+bindings in `tmux.conf` are simply never reached by Option alone.
+<kbd>Option</kbd><kbd>↑</kbd>/<kbd>↓</kbd> have no such entry and work as
+written. <kbd>Cmd</kbd><kbd>Option</kbd>-arrow works for a second reason: it is
+unmapped, and iTerm2's own *Select Split Pane* is a **disabled** menu item while
+the window has no split — macOS does not consume a disabled key equivalent, so
+the key falls through and iTerm2 sends the plain Esc+arrow with the
+untransmittable Cmd dropped.
+
+The upshot is better than the config intended and should be left alone: word
+movement keeps <kbd>Option</kbd><kbd>←</kbd><kbd>→</kbd>, panes get
+<kbd>Option</kbd><kbd>↑</kbd><kbd>↓</kbd> and
+<kbd>Cmd</kbd><kbd>Option</kbd>-arrow. Two caveats: split an *iTerm2* pane and
+that menu item wakes up and takes <kbd>Cmd</kbd><kbd>Option</kbd>-arrow back;
+and none of it applies on Linux, where plain <kbd>Alt</kbd>-arrow sends
+`\e[1;3D` and all four work directly. <kbd>Ctrl</kbd><kbd>Alt</kbd>-arrow is
+*not* the Linux equivalent — tmux names that `C-M-Left`, nothing binds it, and
+most desktops take it for workspace switching before the terminal sees it.
+
+Check your own profile with:
+
+```sh
+defaults read com.googlecode.iterm2 | grep -A2 '0xf702-0x280000'   # Option-Left
+```
+
+**Which is why the arrows are the second-choice binding, not the first.**
+<kbd>Option</kbd><kbd>i</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> does the same
+four moves on the right hand's inverted-T and depends on nothing: no preset
+remaps Option+letter, which is the reason every other `M-<letter>` in
+`tmux.conf` already works, and Linux needs no setup for it either.
+
+The one thing to know before using both: <kbd>Ctrl</kbd>+<kbd>b</kbd>
+<kbd>h</kbd><kbd>j</kbd><kbd>k</kbd><kbd>l</kbd> is vim's layout, so `j` and `k`
+mean **different directions** with and without the prefix — `j` is down with it,
+left without it. Nothing breaks; fingers do.
+
 **A root binding is taken from every program inside tmux, forever.** So each was
 checked against a live `bindkey` before being taken, rather than assumed:
 
 | key | what it shadows in zsh | |
 | --- | --- | --- |
 | `M-d` `M-D` | `kill-word` | the only real loss — `Ctrl-w` still deletes backwards |
-| `M-Left`…`M-Right` | nothing, `undefined-key` | word movement here is on Ctrl-arrows and `M-b`/`M-f` |
+| `M-i` `M-j` `M-k` | nothing, `undefined-key` | |
+| `M-l` | oh-my-zsh's "push the line aside and run `ls`" (`lib/key-bindings.zsh:115`) | the only loss of the four — type `ls` |
+| `M-Up` `M-Down` | nothing, `undefined-key` | |
+| `M-Left` `M-Right` | nothing — but on iTerm2's Natural Text Editing profile they never arrive, see above | word movement is on `M-b`/`M-f`, which is what `⌥←→` is remapped to send |
 | `M-z` | `execute-last-named-cmd` | |
 | `M-s` | `spell-word` | |
 | `M-n` | `history-search-forward` | atuin on <kbd>Ctrl</kbd>+<kbd>R</kbd> replaced it |
 | `M-o` | nothing, `undefined-key` | |
 | `M-=` | nothing, `undefined-key` | |
+| `M-S-Up` `M-S-Down` | nothing — but oh-my-zsh's sudo plugin owns the *prefix* `^[^[` | so untaken, the key ran `sudo-command-line` and typed `[1;2A`. Taking it is a repair |
 
 `M-Enter` was the obvious pick for a layout key and was rejected: **Claude Code
 uses Option-Enter for a newline**, and a root binding would have swallowed it in
