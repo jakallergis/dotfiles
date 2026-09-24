@@ -10,7 +10,33 @@
 
 command -v tmux &>/dev/null || return
 
-# _tmux_free_session — the session you were last in that nobody is sitting in.
+# _tmux_id <name> — the session ID ($0, $6 …) for an exact session name, or
+# nothing at all. Every target below goes through this, and the reason is that
+# a tmux target is not a string: it is parsed as `session:window.pane` *before*
+# any name matching happens. Session names here look like
+# `[ARI-46031] - Bring back the limbic.internal endpoint`, so:
+#
+#   -t "=…limbic.internal endpoint"   -> can't find pane: internal endpoint
+#   -t "=…BadRequestError: request"   -> can't find session: …BadRequestError
+#
+# The `=` prefix does not help. It chooses exact-over-prefix *matching*, which
+# happens after the target has already been split on `.` and `:`. A session ID
+# has neither character and is matched directly, so it is the only safe target
+# for a name somebody typed.
+#
+# Matching is done here rather than with tmux's own `-f '#{==:#{session_name},…}'`
+# because `,` separates the arguments of that format — and these names contain
+# commas (`Versioning, preview, and roll back…`), which would split the filter.
+_tmux_id() {
+  local id nm
+  tmux list-sessions -F $'#{session_id}\t#{session_name}' 2>/dev/null |
+    while IFS=$'\t' read -r id nm; do
+      [[ $nm == "$1" ]] && { print -r -- "$id"; break }
+    done
+}
+
+# _tmux_free_session — the session you were last in that nobody is sitting in,
+# as an ID.
 #
 # Two ssh connections to the same box both ran `tmux attach`, which takes the
 # most recently used session whether or not a client is already on it. Two
@@ -19,12 +45,30 @@ command -v tmux &>/dev/null || return
 # once. So the rule is "resume what I left, unless someone is already in it" —
 # a dropped connection still lands back in its own work, a second connection
 # gets its own.
+#
+# Nothing in here may split on a space, and that is not hypothetical: session
+# names are written `[ARI-46031] - Bring back the limbic.internal endpoint`, so
+# a name is many words. This used to filter with `awk '$1 == 0 { print $2, $3 }'`,
+# and `$3` is only the name's *first* word — every name came back truncated and
+# `tmux attach -t "=[ARI-46031]"` then failed with "can't find session".
+#
+# So: tmux's own `-f` does the filtering, a tab separates the two fields, and
+# `cut` splits on tab (its default) rather than on space. `sort -rn` reads the
+# timestamp, which is first on the line. What comes out is an ID, for the
+# reasons in `_tmux_id` — returning the name would only have to be resolved
+# again, and would break on the first name containing a `.` or a `:`.
 _tmux_free_session() {
-  tmux list-sessions -F '#{session_attached} #{session_last_attached} #{session_name}' 2>/dev/null |
-    awk '$1 == 0 { print $2, $3 }' | sort -rn | head -1 | cut -d' ' -f2-
+  tmux list-sessions -f '#{==:#{session_attached},0}' \
+                     -F $'#{session_last_attached}\t#{session_id}' 2>/dev/null |
+    sort -rn | head -1 | cut -f2-
 }
 
 # _tmux_free_name — main, else main2, main3 … the first one not taken.
+#
+# `-t "=$n"` is safe here where it is not safe elsewhere, because these names
+# are generated rather than typed: `main2` contains no `.` and no `:`. Same for
+# the `=__restore` placeholder further down. Anything a human named goes
+# through `_tmux_id`.
 _tmux_free_name() {
   local n=main i=2
   while tmux has-session -t "=$n" 2>/dev/null; do
@@ -40,7 +84,7 @@ _tmux_resume() {
   local free
   free=$(_tmux_free_session)
   if [[ -n $free ]]; then
-    tmux attach -t "=$free"
+    tmux attach -t "$free"          # an ID; no `=` and no quoting hazard
   else
     tmux new-session -s "$(_tmux_free_name)"
   fi
@@ -56,8 +100,10 @@ _tmux_resume() {
 # Already inside tmux, `t <name>` switches this client to another session rather
 # than nesting a second server inside the first, which is never what you meant.
 #
-# The `=` in `-t "=$name"` is not decoration: without it tmux matches session
-# names by prefix, so `t api` would happily attach you to `api-old`.
+# Names typed by a human are resolved to a session ID with `_tmux_id` before
+# they are used as a target — see there for why `-t "=$name"` is not enough.
+# That also keeps the property `=` was there for: matching is exact, so `t api`
+# never lands you on `api-old`.
 t() {
   case ${1:-} in
     ls | list)
@@ -67,7 +113,9 @@ t() {
     kill)
       shift
       [[ -n ${1:-} ]] || { print -u2 'usage: t kill <name>'; return 1 }
-      tmux kill-session -t "=$1"
+      local kid=$(_tmux_id "$1")
+      [[ -n $kid ]] || { print -u2 "t: no session named $1"; return 1 }
+      tmux kill-session -t "$kid"
       return
       ;;
   esac
@@ -99,13 +147,23 @@ t() {
       print -u2 't: already in a session. `t <name>` switches, Ctrl-b d detaches.'
       return 1
     }
-    tmux has-session -t "=$name" 2>/dev/null || tmux new-session -d -s "$name"
-    tmux switch-client -t "=$name"
+    local id=$(_tmux_id "$name")
+    [[ -n $id ]] || { tmux new-session -d -s "$name"; id=$(_tmux_id "$name") }
+    tmux switch-client -t "$id"
     return
   fi
 
   if [[ -n $name ]]; then
-    tmux new-session -A -s "$name"    # -A: attach if it exists, create if not
+    # Spelled out rather than `new-session -A -s "$name"`, because -A looks the
+    # session up as a *target* and so fails on any name holding a `.` or a `:`
+    # — `new-session -A -s 'a.b: c'` answers "can't find window:  c". Creating
+    # with -s is fine: that argument is a name, never parsed as a target.
+    local id=$(_tmux_id "$name")
+    if [[ -n $id ]]; then
+      tmux attach -t "$id"
+    else
+      tmux new-session -s "$name"
+    fi
   else
     # Carry on where you left off — but only into a session nobody else is
     # already using. See _tmux_free_session.

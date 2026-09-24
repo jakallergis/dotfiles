@@ -409,6 +409,20 @@ both ways: two connections produced `main` at 200x49 and `main2` at 100x23,
 and after killing the first, reconnecting resumed `main` rather than joining
 `main2` or creating a third.
 
+**A session name is many words, and nothing that handles one may split on a
+space.** Sessions here are named `[ARI-46031] - Bring back the limbic.internal
+endpoint`, which reads beautifully in the <kbd>Option</kbd><kbd>s</kbd> picker
+and broke `t` completely. `_tmux_free_session` filtered with
+`awk '$1 == 0 { print $2, $3 }'`, and `$3` is the name's *first word* — so `t`
+resolved the session it wanted down to `[ARI-46031]` and died on
+`can't find session: [ARI-46031]`. The trailing `cut -d' ' -f2-` was there to
+rejoin the name and could not, because awk had already dropped the rest.
+
+The fix moves the filtering into tmux (`-f '#{==:#{session_attached},0}'`) and
+separates the two fields with a tab, so `cut` splits on its default delimiter
+instead of on a space. That was only the first half of the problem — see
+below.
+
 tmux's own answer to "the same session in two places" is a session group —
 `tmux new-session -t main` shares the window list but keeps its own current
 window. That fixes the window-linking but not the sizing, and it is not what
@@ -420,9 +434,35 @@ instant tmux gave up, on the remote box, with no shell left to fix it from.
 Running it normally means a failure just leaves you at a prompt, and
 <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>d</kbd> lands you at one too.
 
-**`-t name` matches by prefix.** `t api` on a box that already has `api-old`
-attaches you to `api-old`, silently, on the wrong project. Every target in
-`tmux.zsh` is written `-t "=$name"`; the `=` forces an exact match.
+**A tmux target is not a string, and `=` is not enough.** The obvious fix for
+prefix matching — `t api` attaching to `api-old` — is `-t "=$name"`, and that
+part is true: `=` chooses exact over prefix. What it does not do is stop tmux
+**parsing the target as `session:window.pane` first**, splitting on `.` and `:`
+before any name is matched at all. With descriptive session names that is not
+an edge case, it is every day:
+
+```
+-t "=[ARI-46031] - Bring back the limbic.internal endpoint"
+    can't find pane: internal endpoint
+-t "=[ARI-46803] - BadRequestError: request aborted"
+    can't find session: [ARI-46803] - BadRequestError
+```
+
+`new-session -A -s "$name"` fails the same way, because `-A` looks the session
+up as a target — `new-session -A -s 'a.b: c'` answers `can't find window:  c`.
+Creating *without* `-A` is safe: `-s` is a name, never parsed.
+
+So **every name a human typed is resolved to a session ID first**, by
+`_tmux_id`, and the ID (`$0`, `$6`…) is what goes to `-t`. An ID contains
+neither `.` nor `:` and is looked up directly. Exact matching comes along for
+free, so nothing `=` was there for is lost. The two `-t "="` targets left in
+`tmux.zsh` are names the script *generated* — `main2`, `__restore` — which
+cannot contain either character.
+
+`_tmux_id` matches in the shell rather than with tmux's own
+`-f '#{==:#{session_name},…}'`, because `,` separates that format's arguments
+and these names contain commas (`Versioning, preview, and roll back…`), which
+would split the filter and quietly match nothing.
 
 **`default-terminal` is chosen at runtime, not written down.** `TERM` has to
 name a terminfo entry that the *system* has, and `tmux-256color` is missing from
