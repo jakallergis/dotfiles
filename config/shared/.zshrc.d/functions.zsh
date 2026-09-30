@@ -31,12 +31,17 @@ killport() {
   done
 }
 
-# dots — jump to the dotfiles repo, found by following ~/.zshrc rather than
-# hardcoding a path, so it works wherever the repo is cloned.
+# dots — jump to the dotfiles repo, found by following a symlink rather than
+# hardcoding a path, so it works wherever the repo is cloned (Coder puts it in
+# ~/.config/coderv2/dotfiles, not $HOME).
+#
+# It follows ~/.zshrc.shared, not ~/.zshrc. ~/.zshrc is a generated stub now —
+# a real file, with nothing to read — so following it would silently fall back
+# to ~/.dotfiles and land you in the wrong place, or nowhere.
 dots() {
   local repo
-  if [[ -L $HOME/.zshrc ]]; then
-    repo=$(readlink "$HOME/.zshrc")   # …/dotfiles/config/shared/.zshrc
+  if [[ -L $HOME/.zshrc.shared ]]; then
+    repo=$(readlink "$HOME/.zshrc.shared")   # …/dotfiles/config/shared/.zshrc.shared
     repo=${repo:h:h:h}
   fi
   cd "${repo:-$HOME/.dotfiles}"

@@ -1,4 +1,14 @@
-# ~/.zshrc — symlinked from dotfiles/config/shared/.zshrc
+# ~/.zshrc.shared — symlinked from dotfiles/config/shared/.zshrc.shared
+#
+# This is the tracked shell config. It is NOT ~/.zshrc: install.sh generates a
+# three-line ~/.zshrc that sources this file, and that stub is untracked. The
+# reason is that installers append to ~/.zshrc — Coder does it on every
+# workspace create — and when ~/.zshrc was a symlink into this repo those
+# appends were committed. Now they land in the stub, after everything here, so
+# they can still override and the repo stays clean.
+#
+# `dots` finds the repo by reading the ~/.zshrc.shared symlink, so this file's
+# name and depth are load-bearing. Edit it with `zshc`.
 #
 # Two rules for this file:
 #   * Installing is install.sh's job. This file only configures what is already

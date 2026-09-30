@@ -2,8 +2,11 @@
 #
 # ~/.claude/agents and ~/.claude/commands are checkouts of someone else's
 # collections, not config — so they are cloned here rather than vendored into
-# this repo, the same call as p10k and the zsh plugins. What IS tracked is
-# ~/.claude/settings.json (which lists the enabled plugins declaratively).
+# this repo, the same call as p10k and the zsh plugins. settings.json (which
+# lists the enabled plugins declaratively) is tracked too, but it is *seeded*
+# rather than symlinked — Claude Code rewrites it and has no user-level
+# settings.local.json to divert those writes to, so a symlink could only mean a
+# permanently dirty checkout. See COPY in steps/shared/10-symlinks.sh.
 
 has git || die "git is missing"
 

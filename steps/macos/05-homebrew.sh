@@ -1,6 +1,6 @@
 # name: Homebrew
 #
-# The PATH/shellenv line lives in config/shared/.zshrc, not here: no step
+# The PATH/shellenv line lives in config/shared/.zshrc.shared, not here: no step
 # should be appending to your shell profile.
 
 if has brew; then

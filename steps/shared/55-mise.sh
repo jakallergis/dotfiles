@@ -25,6 +25,16 @@ fi
 mise install
 ok "$(mise ls --global 2>/dev/null | wc -l | tr -d ' ') tools installed"
 
-# delta is wired into git by the tracked config/shared/.gitconfig, not here.
+# delta is wired into git by the tracked shared.gitconfig, not here.
+
+# conf.d is mise's own local overlay, and the escape hatch for a machine that
+# needs a tool the repo should not carry. mise reads ~/.config/mise/conf.d/*.toml
+# in addition to config.toml and merges the tools (verified). `mise use -g`
+# still writes to the tracked config.toml, which is the point on your own
+# machine — a new tool is a diff to commit. On a throwaway box, target the
+# overlay instead and the repo stays clean:
+#
+#   mise use --path ~/.config/mise/conf.d/local.toml <tool>
+mkdir -p "$HOME/.config/mise/conf.d"
 
 info "run 'mise doctor' if something looks off"

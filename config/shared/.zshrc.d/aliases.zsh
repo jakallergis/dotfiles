@@ -55,7 +55,9 @@ command -v lazygit &>/dev/null && alias lg='lazygit'
 
 # --- editing ----------------------------------------------------------------
 # Single-quoted so $EDITOR is resolved when run, not when this file is read.
-alias zshc='$EDITOR ~/.zshrc'
+# The tracked config, not the generated ~/.zshrc stub — editing the stub would
+# put your change outside the repo and lose it on the next machine.
+alias zshc='$EDITOR ~/.zshrc.shared'
 alias vimc='$EDITOR ~/.vimrc'
 alias omzshc='cd $ZSH/custom'
 alias getpath='print -l $path'

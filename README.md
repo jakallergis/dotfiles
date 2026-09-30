@@ -33,7 +33,8 @@ the shell starts in **0.28 seconds** instead of the 1.25 it used to.
 
 The part worth stealing is not the config. It is the written-down list of
 **traps** — the installer that quietly appends to a `~/.zshrc` that is a symlink
-into your repo; the `git include` that cannot work; the sourced file that fails
+into your repo; the tracked signing key that can only work on one machine; the
+sourced file that fails
 its step because its last line was a false conditional; the `-t name` that
 matches by prefix and attaches you to the wrong session. Each one cost an
 afternoon. They are all in [How it works](#how-it-works), with the reason.
@@ -93,7 +94,7 @@ to `~/.dotfiles-backup/` first.
 | **tools** | one [mise](https://mise.jdx.dev) config installs node, bun, python, ruby, and `atuin bat delta eza fd fzf gh jq lazygit tmux zoxide` |
 | **history** | [atuin](https://atuin.sh) on <kbd>Ctrl</kbd>+<kbd>R</kbd>, plus `ahist` for a cross-author fuzzy picker |
 | **sessions** | tmux, auto-attached on any machine you reach over ssh — [see below](#tmux) |
-| **git** | tracked identity, `gh`, ssh commit signing via 1Password, [delta](https://github.com/dandavison/delta) diffs, [lazygit](https://github.com/jesseduffield/lazygit) on `lg` |
+| **git** | tracked identity, `gh`, [per-machine ssh commit signing](#commit-signing), [delta](https://github.com/dandavison/delta) diffs, [lazygit](https://github.com/jesseduffield/lazygit) on `lg` |
 | **editor** | [druk](https://druk.letstri.dev), falling back to vim |
 | **fonts** | MesloLGS NF fetched from upstream, plus the vendored Hack and Meslo Powerline |
 | **macOS** | Homebrew, a Finder/Dock `defaults` pass |
@@ -185,9 +186,15 @@ got added without a step.
 
 ## The rc-file trap
 
-`~/.zshrc` is a **symlink into this repo**. Any installer that appends to it is
-committing to git. Every tool needs a different lever, and they are easy to get
-wrong:
+`~/.zshrc` **used to be a symlink into this repo**, which made any installer
+that appends to it a commit waiting to happen. It is now a generated,
+untracked three-line stub that sources the tracked `~/.zshrc.shared`
+(`steps/shared/12-zshrc.sh`), so appends land outside the repo — and land
+*after* everything shared, which is the effect the installer wanted anyway.
+
+That turns this whole section from a defence into a curiosity. The levers below
+are still applied, because an append landing in the stub is still an append
+nobody asked for, but getting one wrong no longer dirties the checkout:
 
 | tool | how it is stopped |
 | --- | --- |
@@ -204,8 +211,21 @@ bun appends **unconditionally with no dedup check**); atuin
 `ATUIN_NO_MODIFY_PATH=1`, which also skips writing `~/.atuin/bin/env`; fzf
 `install --bin`.
 
-The shell wiring those installers want to add belongs in `config/shared/.zshrc`
-or a drop-in — never in a step.
+The shell wiring those installers want to add belongs in
+`config/shared/.zshrc.shared` or a drop-in — never in a step.
+
+**The stub is written once and then only checked.** Re-running the installer
+must not throw away what Coder appended, so `12-zshrc.sh` looks for the
+`.zshrc.shared` source line and, finding it, leaves the file completely alone.
+Verified: an appended `export CODER_THING=1` survived a second run, and so did a
+`git config --global core.editor vim`.
+
+**`dots` follows `~/.zshrc.shared`, not `~/.zshrc`.** It finds the repo by
+reading that symlink, and `~/.zshrc` is a real file now with nothing to read —
+so leaving it pointed at the old path would have silently fallen back to
+`~/.dotfiles` and landed you in the wrong directory on a Coder box. `zshc` opens
+the shared file for the same reason: editing the stub would put the change
+outside the repo.
 
 ## config/ and symlinks
 
@@ -213,6 +233,12 @@ or a drop-in — never in a step.
 `config/shared/` and `config/<os>/` into `$HOME` under the same name. Add a
 file, get a symlink; there is no list to maintain. Anything already at the
 destination moves to `~/.dotfiles-backup/` first — nothing is deleted.
+
+**The rule is: symlink only what nothing else writes.** A symlink into the repo
+is a promise that the file is yours alone, and every file that broke that
+promise showed up as a permanently dirty checkout on every machine. Where a tool
+rewrites its own config, it needs either its own include mechanism (git, zsh,
+mise below) or, failing that, `COPY`.
 
 - An OS lane file replaces a shared one **of the same name**.
 - **Directories are replaced wholesale, not merged.** A
@@ -224,6 +250,14 @@ destination moves to `~/.dotfiles-backup/` first — nothing is deleted.
   too (`~/.claude` holds a 1 MB history file and 678 plugin files; `~/.config/gh`
   holds an OAuth token). Everything else is linked whole, which is why adding a
   file to `config/shared/.zshrc.d/` needs no re-run.
+- **`COPY=".claude/settings.json"`** — seeded, not linked. Claude Code rewrites
+  its own user settings and has no user-level `settings.local.json` to divert
+  those writes to, so this is the one file with no clean answer: a symlink means
+  a dirty repo forever. `copy_one` copies it if it is absent and otherwise
+  leaves it completely alone, so the machine owns it from first install. **The
+  tradeoff is one-directional** — changes made on a machine do not flow back,
+  and have to be copied into the repo deliberately. It also migrates: an
+  existing symlink is moved to `~/.dotfiles-backup/` and replaced with a copy.
 
 **What belongs in `config/`: the delta, never the whole file.** Four boxes —
 intent (hand-written and small, e.g. `.config/git/ignore`) is tracked; defaults
@@ -240,21 +274,186 @@ one line. Most tools can print just the delta — `git config --global --list`,
 
 ## Split config: tracked intent, generated machine facts
 
-`~/.gitconfig` is tracked (identity, ssh signing, delta, gh credential helper by
-PATH not by absolute path). The one value that cannot be portable — the path to
-1Password's `op-ssh-sign`, different on every OS — is written to
-**`~/.config/git/config`** by `steps/shared/40-git.sh`.
+It is the other way round from how this repo used to do it. The **local** file
+is the one in `$HOME`, and it *includes* the tracked one:
 
-Git reads that file *in addition to* `~/.gitconfig`, and before it, so the
-tracked file wins any clash. Two things that do **not** work here, both tested:
-an `[include] path = ~/.gitconfig.local` (git does not expand `~/` in
-include.path) and a relative include (git resolves it against the including
-file's directory, which through the symlink is this repo).
+| | |
+| --- | --- |
+| `~/.config/git/shared.gitconfig` | tracked, symlinked, identical on every machine |
+| `~/.gitconfig` | generated by `steps/shared/40-git.sh`, **not tracked**, this machine's facts |
 
-Same shape elsewhere: `~/.zshrc.local` for secrets, `mise use -g` writing
-through the symlinked mise config.
+```gitconfig
+[include]
+	path = ~/.config/git/shared.gitconfig
+```
+
+That is the first thing in `~/.gitconfig`, and being first is the point: git
+takes the *last* value it reads, so everything below the include overrides the
+shared config. The machine's signing key goes there, and so does anything
+`git config --global` writes later.
+
+**Which is the actual fix for the dirty checkout.** `~/.gitconfig` used to be a
+symlink into the repo, so every `git config --global`, every
+`gh auth setup-git`, every tool that set a credential helper, edited a tracked
+file. Now `~/.gitconfig` is a real file — and verified: **when both
+`~/.gitconfig` and `~/.config/git/config` exist, `git config --global` writes to
+`~/.gitconfig`.** If only the XDG file exists it writes there instead, which is
+why the include lives in `~/.gitconfig` and not the other way about.
+
+**`[include] path = ~/…` does expand the tilde.** This repo asserted the
+opposite for a long time, and the note said it had been tested. It had, with
+`git config --global --list` — which restricts itself to the global file's own
+scope and does **not** traverse includes, so the included values look absent.
+That is a convincing false negative. Read a key normally and it resolves:
+
+```sh
+git config user.name                    # comes from the included shared file
+git config --show-origin --get-regexp '^user\.'   # proves which file each came from
+git config --global --list              # misleading: shows no included values
+```
+
+A relative include really does not work, for the reason originally given: git
+resolves it against the including file's directory.
+
+Same shape elsewhere, and the tool's own mechanism every time:
+
+| | |
+| --- | --- |
+| zsh | generated `~/.zshrc` sources tracked `~/.zshrc.shared`, then `~/.zshrc.local` |
+| mise | tracked `config.toml`, plus `~/.config/mise/conf.d/*.toml` for machine-only tools |
+| Claude Code | no include exists — seeded copy, see `COPY` above |
+
+## Commit signing
+
+**One key per machine, generated on the machine, never in the repo.**
+`steps/shared/42-git-signing.sh` creates `~/.ssh/id_ed25519_signing` if it is
+absent, never touches it if it is not, points git at it, registers it on GitHub
+and builds the file that makes local verification work.
+
+What it replaces was broken everywhere, including on the machine it was written
+on. The tracked config carried a literal key:
+
+```gitconfig
+[user]
+	signingkey = ssh-rsa AAAAB3NzaC1yc2E…      # do not do this
+```
+
+Two separate failures. A **literal** key gives `ssh-keygen` nothing to read, so
+it asks an *agent* for the private half — and on any box without
+`SSH_AUTH_SOCK`, which is every non-interactive shell and every Coder
+workspace, that is:
+
+```
+error: Couldn't get agent socket?
+fatal: failed to write commit object
+```
+
+You cannot commit at all. And the key existed on exactly one machine, so
+nowhere else could have signed even with an agent. Meanwhile on the machine
+where it *did* work, `gh api user/ssh_signing_keys` returned `[]` — the key had
+never been registered as a **signing** key, so GitHub reported every commit
+`verified=false, unknown_key`. Authentication keys do not count for commit
+verification, and it is entirely possible to have three keys on the account and
+still no way to verify a commit. The cost of signing was being paid in full for
+none of the benefit.
+
+**`user.signingkey` names the public key file.** `ssh-keygen -Y sign -f key.pub`
+strips the `.pub`, finds the private half beside it and signs directly, with no
+agent anywhere — verified with `SSH_AUTH_SOCK` unset. Pointing at the private
+key also works, but the `.pub` is what GitHub documents, what
+`allowedSignersFile` wants, and it keeps private paths out of config.
+
+**No passphrase, deliberately.** A passphrase can only be supplied by an agent
+or a prompt, which is the exact failure being fixed. This key signs and does
+nothing else: it grants no access anywhere, and anyone able to read it already
+has the filesystem. Authentication keys keep their passphrases. The macOS
+alternative — a Secure Enclave key, `ssh-keygen -t ecdsa-sk` — needs hardware
+and would leave one machine on a different code path.
+
+**Nothing here may stop you committing.** If `ssh-keygen` is missing or a key
+cannot be made, the step unsets `commit.gpgsign` for that machine and says so.
+Verified: with `gpgsign` set to `true` beforehand and `ssh-keygen` made
+unavailable, the step turned it off and an unsigned commit went through.
+
+The step also proves itself rather than assuming. It signs a real commit in a
+throwaway repo with `env -u SSH_AUTH_SOCK` and reads back `%G?`, so
+"configured" and "works" cannot drift apart:
+
+```
++ signed and verified a test commit with no ssh-agent
+```
+
+### allowed_signers
+
+`git log --show-signature` needs `gpg.ssh.allowedSignersFile` or it does not
+verify anything — it just errors, which is what it did here for years. There is
+no include mechanism in that file format, so the step **concatenates**:
+
+```
+~/.config/git/allowed_signers   tracked, one line per known machine
+              + this machine's own key
+            = ~/.ssh/allowed_signers   generated
+```
+
+So a machine always trusts itself with no commit required, and trusts its
+siblings once their key is in the tracked list. The step prints the line to add
+and deliberately does not add it for you — writing to a tracked file is the
+thing this repo is trying to stop doing.
+
+### GitHub registration
+
+`gh ssh-key add <pub> --type signing --title "<host> signing"`, and it checks
+`gh api user/ssh_signing_keys` first so the same key is never added twice. A
+token with only `read:ssh_signing_key` can *list* keys but not add one, which is
+why the listing check succeeds and the add then fails — so that branch prints
+the fix rather than a stack trace:
+
+```sh
+gh auth refresh -s admin:ssh_signing_key && ./install.sh git-signing
+```
+
+Failing that it prints the public key and
+<https://github.com/settings/ssh/new> with a reminder to choose key type
+**Signing Key**, which is the part that is easy to get wrong.
+
+### Adding, rotating and revoking a machine
+
+```sh
+./install.sh git-signing          # new machine: key, git config, GitHub, verify
+```
+
+To **rotate** a machine's key, delete the pair and re-run — the step only ever
+creates a key that is absent, so this is the one destructive act and it is
+yours:
+
+```sh
+rm ~/.ssh/id_ed25519_signing ~/.ssh/id_ed25519_signing.pub
+./install.sh git-signing
+```
+
+then delete the old key at <https://github.com/settings/keys> and replace its
+line in `config/shared/.config/git/allowed_signers`.
+
+To **revoke** a machine you no longer have, there are two independent places and
+both matter: delete the key under *SSH keys → Signing keys* on GitHub, which
+stops new commits verifying there, and remove its line from the tracked
+`allowed_signers`, which stops your other machines trusting it locally. Old
+commits keep verifying on GitHub as long as the key is registered — deleting it
+makes them Unverified, so if you want history to stay green, leave the key in
+place and only remove it locally.
+
+Commits made *before* a machine's key was registered stay `unknown_key` for
+ever. There is no backfill; GitHub verifies against the keys on the account at
+read time, but a commit signed by a key that was never uploaded has nothing to
+match.
 
 ## .zshrc
+
+The tracked file is **`config/shared/.zshrc.shared`**, symlinked to
+`~/.zshrc.shared`. `~/.zshrc` is a generated stub that sources it — see
+[the rc-file trap](#the-rc-file-trap) for why. The instant prompt still ends up
+first in what zsh executes, because the stub prints and reads nothing above the
+`source` line.
 
 Eight numbered sections, and three of the orderings are load-bearing:
 
@@ -965,7 +1164,7 @@ its own process instead.
 ./install.sh -n                        # plan
 DOTFILES_OS=linux ./install.sh -n      # another lane's plan
 HOME=/tmp/fakehome ./install.sh -y symlinks   # destructive steps, safely
-zsh -n config/shared/.zshrc            # syntax
+zsh -n config/shared/.zshrc.shared     # syntax
 zsh -n config/shared/.zshrc.d/*.zsh
 script -q /dev/null zsh -i -c exit     # a clean startup needs a pty; without
                                        # one, gitstatus fails spuriously
@@ -975,6 +1174,34 @@ cat -v                                 # then press a key to see what it sends
 **`HOME=/tmp/fake` does not sandbox mise.** It resolves its home from the OS
 passwd entry, not `$HOME`, so it will read your real `~/.config/mise/config.toml`
 and then fail a trust check. Use `MISE_CONFIG_DIR` and `MISE_DATA_DIR` instead.
+
+**`HOME=/tmp/fake` does not sandbox git either**, for a different reason:
+`.zshrc` *exports* `XDG_CONFIG_HOME`, so git keeps resolving
+`$XDG_CONFIG_HOME/git/config` to your real one. A fake-`HOME` test of the git
+steps wrote `[probe] a = 1` into the real `~/.config/git/config` before this was
+understood. Set both:
+
+```sh
+env -u GIT_CONFIG_GLOBAL HOME=/tmp/fake XDG_CONFIG_HOME=/tmp/fake/.config ./install.sh -y 40-git
+```
+
+**A fake `HOME` does not stop steps finding your real tools.** `install.sh`
+prepends `/opt/homebrew/bin:/usr/local/bin` to `PATH` on macOS (line 137), so a
+stub earlier on `PATH` is shadowed by the real binary. That silently turned a
+`gh` stub into the real `gh` during testing, which then reported "not logged in"
+because the sandboxed `HOME` had no credentials — a plausible-looking result
+from the wrong code path. Test branches that talk to a network service by
+sourcing the block directly with the helpers defined, rather than through
+`install.sh`.
+
+**Testing the signing step end to end**, no agent, nothing touching GitHub:
+
+```sh
+T=/tmp/fakehome
+env -u GIT_CONFIG_GLOBAL -u SSH_AUTH_SOCK HOME=$T XDG_CONFIG_HOME=$T/.config \
+  ./install.sh -y symlinks zshrc 40-git 42-git
+env -u GIT_CONFIG_GLOBAL -u SSH_AUTH_SOCK HOME=$T git -C $T/r commit -m x   # then %G? must be G
+```
 
 **Checking tmux.conf without touching your sessions** — a private socket and a
 throwaway server. tmux reports config errors to the attaching client, so
@@ -1014,10 +1241,22 @@ not touch your rc files, put decoy `.zshrc`/`.bashrc`/`.profile` in a fake
   `55-mise.sh`, which just runs `mise install`. `mise use -g <tool>` writes
   through the symlink into the repo (verified: mise writes in place rather than
   replacing the symlink), so adding a tool is a diff to commit.
+- **`mise use -g` still writes into the repo, and that is kept on purpose.**
+  It is the one place this repo's "nothing machine-specific in a tracked file"
+  rule is deliberately not applied, because a new tool genuinely *is* shared
+  intent and a diff to commit is the right outcome on your own machine. On a
+  throwaway box, target mise's own overlay instead and the checkout stays
+  clean: `mise use --path ~/.config/mise/conf.d/local.toml <tool>`. mise reads
+  `conf.d/*.toml` in addition to `config.toml` and merges the tools (verified).
 - **`op` CLI is installed by no step**, and the 1Password desktop app does not
   ship it (the bundle only has `op-ssh-sign`). `1password.zsh` defines helpers
   and exports nothing, so it stays inert until `op` is installed by hand. On a
-  headless box it needs a service account token.
+  headless box it needs a service account token. Note that **git no longer uses
+  `op-ssh-sign`**: signing moved to a per-machine key file so that it works in
+  non-interactive shells and on machines with no 1Password at all, and so that
+  a commit can never be blocked behind a biometric prompt. `40-git.sh` retires
+  the old generated `~/.config/git/config` that set it, and `42-git-signing.sh`
+  unsets `gpg.ssh.program` if it still points there.
 - **tmux-resurrect / tmux-continuum are in** — see
   [Reboot persistence](#reboot-persistence). The objection recorded here was
   that they drag in TPM; they do not, both ship a standalone `.tmux` entrypoint

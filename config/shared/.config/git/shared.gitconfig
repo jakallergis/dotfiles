@@ -1,0 +1,58 @@
+# Shared git config — tracked, symlinked to ~/.config/git/shared.gitconfig.
+#
+# Git does NOT read this file by name. It is pulled in by an [include] at the
+# top of ~/.gitconfig, which install.sh generates per machine and does not
+# track. That split is the whole point:
+#
+#   ~/.config/git/shared.gitconfig   tracked intent, identical everywhere
+#   ~/.gitconfig                     this machine's facts, plus anything
+#                                    `git config --global` writes
+#
+# Because the include sits at the *top* of ~/.gitconfig, anything below it wins
+# — so a machine can override any value here without editing the repo. And
+# because ~/.gitconfig is a real file rather than a symlink, it is what
+# `git config --global` and `gh auth setup-git` write to, which is how this repo
+# stays clean on every machine.
+#
+# `[include] path = ~/…` does expand the tilde, contrary to what this repo used
+# to claim. The old note came from testing with `git config --global --list`,
+# which does not traverse includes and so reports included values as missing.
+# A normal read resolves them; `git config --show-origin` proves it.
+#
+# Nothing about signing lives here. user.signingkey, commit.gpgsign and
+# gitbutler.signCommits are machine facts written by steps/shared/42-git-signing.sh,
+# because the key differs per machine and a machine with no key must still be
+# able to commit.
+
+[user]
+	email = j.a.kallergis@gmail.com
+	name = John A. Kallergis
+
+# Signing format only. Whether signing is *on*, and with which key, is written
+# per machine — see 42-git-signing.sh.
+[gpg]
+	format = ssh
+
+[init]
+	defaultBranch = main
+
+# delta, installed by mise. Set here rather than by a step so there is one
+# source of truth.
+[core]
+	pager = delta
+[interactive]
+	diffFilter = delta --color-only
+[delta]
+	navigate = true
+
+[gitbutler]
+	aiModelProvider = openai
+
+# gh as the credential helper, found on PATH instead of by absolute path so this
+# line works on Linux too. The empty helper first clears any inherited default.
+[credential "https://github.com"]
+	helper =
+	helper = !gh auth git-credential
+[credential "https://gist.github.com"]
+	helper =
+	helper = !gh auth git-credential

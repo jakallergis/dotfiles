@@ -1,7 +1,7 @@
 # name: druk
 #
 # --no-modify-path keeps the installer away from ~/.zshrc, which is a symlink
-# into this repo; the PATH line lives in config/shared/.zshrc. The installer
+# into this repo; the PATH line lives in config/shared/.zshrc.shared. The installer
 # compares versions itself, so re-running it is also how you upgrade.
 
 if [ "$OS" = linux ]; then

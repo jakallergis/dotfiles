@@ -6,7 +6,7 @@
 # THE TRAP: on macOS lazygit does not read this file unless XDG_CONFIG_HOME is
 # set. With the variable unset it looks in ~/Library/Application Support/lazygit/
 # and this file is ignored in silence — config that works on Linux and does
-# nothing on the Mac, with no error to explain it. config/shared/.zshrc exports
+# nothing on the Mac, with no error to explain it. config/shared/.zshrc.shared exports
 # XDG_CONFIG_HOME for precisely this. Confirm with `lazygit --print-config-dir`.
 
 git:

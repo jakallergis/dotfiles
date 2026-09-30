@@ -1,0 +1,15 @@
+# Known signing keys, one machine per line — tracked, public keys only.
+#
+# This is what lets `git log --show-signature` say "Good signature" for a commit
+# made on one of your *other* machines. Git is pointed at the generated
+# ~/.ssh/allowed_signers, which steps/shared/42-git-signing.sh builds as this
+# file plus the local machine's own key. So a machine always trusts itself with
+# no commit required, and trusts its siblings once their key is added here.
+#
+# Format is ssh-keygen's, `principal keytype key`. To add a machine, run
+# `./install.sh git-signing` there, copy the line it prints, add it below and
+# commit. Removing a line revokes local trust; it does not touch GitHub — see
+# "Commit signing" in the README for the full rotate/revoke path.
+#
+# Deliberately not auto-appended by the installer: writing to a tracked file is
+# exactly the thing this repo is trying to stop doing.
