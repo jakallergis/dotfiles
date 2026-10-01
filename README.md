@@ -547,8 +547,9 @@ a window or pane never triggers it.
 | <kbd>Option</kbd><kbd>s</kbd> | browse sessions and their windows, Enter to switch |
 | <kbd>Shift</kbd><kbd>Option</kbd><kbd>↑</kbd> / <kbd>↓</kbd> | previous / next session, no picker |
 | <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>c</kbd> | new window in this session |
-| <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>,</kbd> | rename this window |
-| <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>$</kbd> | rename this session |
+| <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>,</kbd> | rename this window — **current name prefilled** |
+| <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>$</kbd> | rename this session — **current name prefilled** |
+| <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>T</kbd> | retag this session: asks for a ticket id, keeps the description |
 | <kbd>Option</kbd><kbd>d</kbd> / <kbd>Shift</kbd><kbd>Option</kbd><kbd>d</kbd> | new pane |
 
 `choose-tree` can browse and switch but not create, and tmux 3.7 exposes only
@@ -844,7 +845,58 @@ elsewhere applies as written. What is not stock:
 | <kbd>r</kbd> | reload `tmux.conf` |
 | <kbd>m</kbd> | toggle the mouse off entirely — on by default, minus drag-selection |
 | <kbd>S</kbd> | flag this window once it has been quiet for 30s: *tell me when the agent stops typing* |
+| <kbd>T</kbd> | retag the session — `[NEW] Some description` becomes `[ARI-1234] Some description` |
 | <kbd>v</kbd> <kbd>y</kbd> in copy mode | select / copy, vi keys |
+
+**Renaming already prefills the current name, which is easy to miss.** Stock
+tmux binds both rename keys with `command-prompt -I`, so the existing name is
+there to edit rather than retype:
+
+```tmux
+bind-key -T prefix $  command-prompt -I "#S" { rename-session "%%" }
+bind-key -T prefix ,  command-prompt -I "#W" { rename-window  "%%" }
+```
+
+Reaching for `Ctrl-b :` and typing `rename …` by hand is the slow path — it is
+the one that makes you copy the old name out of the status bar first.
+
+**<kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>T</kbd> retags instead, because the part that
+changes is at the front.** Sessions here are named `[ARI-46031] - description`,
+and a session started before its ticket exists is `[NEW] - description`. With
+`$` you get the whole name prefilled and the cursor at the *end*, so every retag
+means walking back past the description. `T` asks for the id alone and rebuilds
+the rest:
+
+```tmux
+bind T command-prompt -p 'ticket:' { rename-session -- '[%%] #{s|^\[[^]]*\] *||:session_name}' }
+```
+
+`#{s|pattern|replacement|:session_name}` is a regex substitution, and
+`session_name` is still the **old** name while this runs, which is what carries
+the description over. An untagged session gains a tag rather than losing its
+name: `just a plain name` becomes `[ARI-1234] just a plain name`.
+
+Three things here cost a test each:
+
+- **The source must be a format variable**, `session_name`. Writing `#S` there
+  returns an empty string, which reads exactly like a regex that failed to
+  match — the first attempt renamed a session to `[ARI-9999] ` and nothing else.
+- **The prompt starts empty on purpose.** Prefilling the old tag with `-I` was
+  tried and is worse: the cursor lands after it, so typing the new id gives
+  `NEWARI-1234` and the field has to be cleared first.
+- **The quoting is `{ … }` with single quotes inside, and that is load-bearing.**
+  tmux processes backslash escapes inside double quotes, and it does it
+  **twice** — once reading `tmux.conf`, again parsing the command when the key
+  is pressed. Any double quote in that chain eats one level of `\[`; the binding
+  registers and `list-keys` looks perfect, but the regex silently stops matching
+  and you get `[ARI-1234] [NEW] Some description`. Only driving a real pty
+  caught it:
+
+```sh
+# attach in a pty, send prefix+T, type an id, then read the name back
+python3 pty_run.py  # os.write(fd, b"\x02T"); os.write(fd, b"ARI-1234\r")
+tmux -L probe display-message -p '#S'
+```
 
 **Hold the prefix and every pane names itself.** Pane numbers appear in the
 pane borders and the window index reverse-highlights in the status line, for
