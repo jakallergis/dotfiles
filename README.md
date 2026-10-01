@@ -550,6 +550,11 @@ a window or pane never triggers it.
 | <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>,</kbd> | rename this window — **current name prefilled** |
 | <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>$</kbd> | rename this session — **current name prefilled** |
 | <kbd>Ctrl</kbd>+<kbd>b</kbd> <kbd>T</kbd> | retag this session: asks for a ticket id, keeps the description |
+
+**Session names cannot contain `.` or `:`** — a hook swaps them for homoglyphs
+that look identical, because tmux parses a target as `session:window.pane`
+before matching any name and tmux-resurrect loses panes over it. See
+[Reboot persistence](#reboot-persistence).
 | <kbd>Option</kbd><kbd>d</kbd> / <kbd>Shift</kbd><kbd>Option</kbd><kbd>d</kbd> | new pane |
 
 `choose-tree` can browse and switch but not create, and tmux 3.7 exposes only
@@ -586,6 +591,7 @@ inlined so that when a box does not attach you can run it and read `$?`.
 | guard | what it stops |
 | --- | --- |
 | `$TMUX`, `$STY` | tmux runs `$SHELL` for every new pane. Without this the first pane attaches to the session it is already in, forever |
+| `$HERDR_ENV` | the same trap one multiplexer further: [herdr](#herdr) runs `$SHELL` for every pane too. Unguarded, a pane meant for a fresh agent attached to a **live Claude session** instead — `tmux attach` takes the most recently used one — a keystroke away from typing into that conversation, and resizing its window for every other client. It also made the pane useless to herdr: `agent start` needs the shell in the foreground and answers `agent_pane_busy` behind `tmux attach` |
 | `-o interactive` | `ssh host <cmd>`, scp, rsync and git-over-ssh all start a shell. None may be handed a full-screen program |
 | `-t 1` | the same thing again, for anything without a terminal |
 | `$TERM = dumb` | a captive shell inside an editor |
@@ -1010,6 +1016,101 @@ Verified both ways round: exiting every pane leaves `last.closed` and a fresh
 `main` next time, while `kill -9` on the server leaves `last` intact and the
 panes come back with their directories.
 
+**tmux-resurrect has the same target bug `t` had, and it is not fixed
+upstream.** Its restore builds `"${session_name}:${window_number}"` in about
+twenty places, so a session named `[ARI-46873] - Remove logger.notify` cannot be
+addressed at all. Measured on a real restore of ten sessions and seventeen
+panes: fifteen panes came back, two did not, and one session lost its working
+directory, with
+
+```
+can't find pane: notify
+can't find window:  request aborted:1
+can't find session: 0
+```
+
+The clone is level with `origin/master`, so there is nothing to pull. Patching
+a cloned plugin would be undone by its next `git pull`, and resolving twenty
+call sites to session IDs is a patch that rots. So the characters never get into
+a name in the first place:
+
+| | |
+| --- | --- |
+| `config/shared/.config/tmux/safe-session-name.sh` | swaps `.` and `:` for homoglyphs |
+| `set-hook -g session-created` / `session-renamed` | fires it, so a name can never be *saved* dirty |
+
+```
+.  ->  U+2024 ONE DOT LEADER
+:  ->  U+2236 RATIO
+```
+
+The names look unchanged — `[ARI-46803] - BadRequestError∶ request aborted` — and
+`session:window` targets, `split-window` and a full resurrect round-trip all
+work with them, where the originals fail. Verified end to end in a throwaway
+server with its own `@resurrect-dir`: six panes saved, six restored with correct
+directories, and **restore.sh printed no errors at all**.
+
+Why it has to happen on create and rename rather than at restore time: the save
+file records whatever the live names are, so cleaning them when the session is
+*made* is what makes the next save restorable. Three details worth keeping:
+
+- **No escaping works.** Tested `\.`, `\:`, the `=` exact-match prefix and
+  combinations — tmux splits the target on `.` and `:` before any matching
+  happens. Session IDs are the only safe target, which is also why
+  `_tmux_id` exists in `tmux.zsh`.
+- **The script takes no arguments.** Passing `#{hook_session_name}` through
+  `run-shell` would mean quoting an arbitrary name through two parsers, which is
+  the class of bug being fixed. It sweeps every session instead, so it is
+  idempotent and one call also cleans up sessions that already exist.
+- **`LC_ALL=C sed`.** Under a UTF-8 locale sed refuses a name that already holds
+  these homoglyphs — `RE error: illegal byte sequence` — which is every name
+  after the first run.
+
+The cost: a name typed with real `.`/`:` no longer matches, so
+`t "[ARI-46803] - BadRequestError: request aborted"` finds nothing. These are
+picked from <kbd>Option</kbd>+<kbd>s</kbd> anyway.
+
+**A tmux server's `ps` line is the command that spawned it, and mistaking that
+for a stray process costs you every session.** This one was expensive. `ps`
+showed
+
+```
+1744  Wed Sep 23 14:55:21  tmux new-session -d -s __restore
+```
+
+which reads exactly like the `__restore` placeholder `t` creates having failed
+to exit, eight days stale. It was the **server**: tmux forks a server and the
+process keeps the argv of whichever command started it, so a server first
+brought up by `t` advertises itself for ever as `tmux new-session -d -s
+__restore`. `kill` on it killed ten sessions.
+
+Ask tmux, never `ps`:
+
+```sh
+tmux display-message -p '#{pid}'              # the server, authoritatively
+lsof -t /tmp/tmux-$(id -u)/default            # same answer, independently
+```
+
+What saved it was `forget-on-teardown.sh` renaming rather than deleting: the
+`session-closed` hook fired as the server went down, and
+`mv last.closed last` in the resurrect directory plus
+`~/.config/tmux/plugins/tmux-resurrect/scripts/restore.sh` brought everything
+back from a save made minutes earlier. That undo is the entire reason the script
+renames.
+
+**A stale client process is enough to switch autosave off.**
+`number_tmux_processes_except_current_server` counts tmux *processes*, so an
+orphaned `tmux attach -t $19` left over from a dead server — pointing at a
+session id that no longer exists — makes continuum believe a second environment
+is live and skip `add_resurrect_save_interpolation` entirely. Silently:
+`@continuum-restore` still says `on`. When the count check fails, classify every
+process against the real server pid before touching anything:
+
+```sh
+srv=$(tmux display-message -p '#{pid}')
+ps -eo pid,lstart,command | grep "[t]mux" | awk -v s="$srv" '{print ($1==s ? "SERVER " : "client ") $0}'
+```
+
 **continuum does nothing when a second tmux server is running.** Both
 `continuum_save.sh` and `continuum_restore.sh` bail out on
 `another_tmux_server_running`, deliberately, so two environments cannot
@@ -1267,6 +1368,25 @@ tmux -L probe show-options -g        # session options
 tmux -L probe list-keys -T prefix
 tmux -L probe kill-server
 ```
+
+**Testing resurrect without touching your real state** needs two things: its own
+`@resurrect-dir`, and the save/restore scripts run *inside* the probe server.
+They call `tmux` with no `-L`, so running them from your shell would save your
+real sessions and restore into your real server:
+
+```sh
+tmux -L probe set -g @resurrect-dir /tmp/rz
+tmux -L probe run-shell ~/.config/tmux/plugins/tmux-resurrect/scripts/save.sh
+tmux -L probe kill-server
+tmux -L probe2 -f … new-session -d -s placeholder
+tmux -L probe2 set -g @resurrect-dir /tmp/rz
+tmux -L probe2 run-shell ~/.config/tmux/plugins/tmux-resurrect/scripts/restore.sh
+```
+
+**Kill every probe server when you are done.** A live `tmux -L anything` makes
+continuum skip autosave on your real server, and a stale socket file left in
+`/tmp/tmux-$(id -u)/` is harmless but confusing. `tmux -L x has-session` tells
+you whether a socket still has a server behind it.
 
 `TMUX_TMPDIR` also isolates a test server, but a unix socket path caps out
 around 104 characters — keep the directory short or every command fails with

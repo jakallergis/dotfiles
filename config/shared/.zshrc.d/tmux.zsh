@@ -183,6 +183,18 @@ t() {
 #   $TMUX          tmux runs $SHELL for every new pane. Without this, the first
 #                  pane attaches to the session it is already in, forever.
 #   $STY           the same trap, one multiplexer along (GNU screen).
+#   $HERDR_ENV     and again, one multiplexer further: herdr also runs $SHELL
+#                  for every pane it creates. Without this guard a herdr pane
+#                  auto-attaches, and `tmux attach` takes the most recently
+#                  used session — so a pane meant for a fresh agent landed in a
+#                  *live* Claude session instead, one keystroke from typing
+#                  into someone else's conversation, and resized its window for
+#                  every other client. It also makes the pane useless to herdr:
+#                  `agent start` needs the shell itself in the foreground and
+#                  returns `agent_pane_busy` behind `tmux attach`, and the
+#                  state-reporting hook exits unless HERDR_ENV, HERDR_PANE_ID
+#                  and HERDR_SOCKET_PATH reach the agent's own environment,
+#                  which they do not through a tmux server.
 #   interactive    `ssh host <cmd>`, scp, rsync and git-over-ssh all start a
 #                  shell, and none of them may be handed a full-screen program.
 #   -t 1           belt and braces for the same thing: no terminal, no tmux.
@@ -197,6 +209,7 @@ t() {
 _tmux_autoattach_wanted() {
   [[ ${DOTFILES_TMUX_AUTOATTACH:-1} == 1 ]] || return 1
   [[ -z $TMUX && -z $STY ]]                 || return 1
+  [[ -z $HERDR_ENV ]]                       || return 1   # herdr owns this pane
   [[ -o interactive ]]                      || return 1
   [[ -t 1 ]]                                || return 1
   [[ $TERM != dumb ]]                       || return 1
