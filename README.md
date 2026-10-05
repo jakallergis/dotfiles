@@ -91,7 +91,7 @@ to `~/.dotfiles-backup/` first.
 | | |
 | --- | --- |
 | **shell** | zsh + [oh-my-zsh](https://ohmyz.sh) + [powerlevel10k](https://github.com/romkatv/powerlevel10k), autosuggestions, syntax highlighting |
-| **tools** | one [mise](https://mise.jdx.dev) config installs node, bun, python, ruby, and `atuin bat delta eza fd fzf gh jq lazygit tmux zoxide` |
+| **tools** | one [mise](https://mise.jdx.dev) config installs node, bun, python, ruby, and `atuin bat delta eza fd fzf gh herdr jq lazygit tmux zoxide` |
 | **history** | [atuin](https://atuin.sh) on <kbd>Ctrl</kbd>+<kbd>R</kbd>, plus `ahist` for a cross-author fuzzy picker |
 | **sessions** | tmux, auto-attached on any machine you reach over ssh — [see below](#tmux) |
 | **git** | tracked identity, `gh`, [per-machine ssh commit signing](#commit-signing), [delta](https://github.com/dandavison/delta) diffs, [lazygit](https://github.com/jesseduffield/lazygit) on `lg` |
@@ -258,6 +258,8 @@ mise below) or, failing that, `COPY`.
   tradeoff is one-directional** — changes made on a machine do not flow back,
   and have to be copied into the repo deliberately. It also migrates: an
   existing symlink is moved to `~/.dotfiles-backup/` and replaced with a copy.
+  **`.config/herdr/config.toml` is in `COPY` for the same two reasons** — see
+  [herdr](#herdr).
 
 **What belongs in `config/`: the delta, never the whole file.** Four boxes —
 intent (hand-written and small, e.g. `.config/git/ignore`) is tracked; defaults
@@ -1165,6 +1167,120 @@ useful part and nothing else.
 launchctl print gui/$(id -u)/com.jakallergis.tmux     # check it is loaded
 launchctl bootout gui/$(id -u)/com.jakallergis.tmux   # turn it off
 ```
+
+## herdr
+
+A terminal workspace manager that knows what a coding agent is. It is in mise's
+registry, so installing it is one tracked line and **no step** — the same as
+tmux:
+
+```toml
+herdr = { version = "latest", os = ["linux", "macos"] }
+```
+
+mise's install paths come before `~/.local/bin` on `PATH`, so a copy left by
+herdr's own installer is shadowed rather than fought with. `update.version_check
+= false` is set in the config for the reason lazygit has `update.method: never`:
+mise owns the binary, and a self-update could only produce drift. `mise up
+herdr` is the upgrade path.
+
+**`steps/shared/58-herdr.sh` installs the agent integration, and that is the
+whole point of the step.** `herdr integration install claude` writes
+`~/.claude/hooks/herdr-agent-state.sh` — 100 lines bound to Claude Code's own
+hook events (`UserPromptSubmit`, `PreToolUse`, `Stop`, `SubagentStop`, …) which
+write to `$HERDR_SOCKET_PATH` for `$HERDR_PANE_ID`. That hook is the only reason
+the sidebar can report `idle`/`working`/`blocked`/`done`; without it herdr sees
+panes and no agents. It is idempotent by inspection — `integration status`
+reports `current` when the installed hook matches the binary.
+
+It matters most on the machines you reach over ssh, because **the socket has to
+be local to the agent**: a Claude on a Coder box cannot report to a socket on
+the Mac. Which is also the answer to "did the workspace need herdr installed?" —
+yes. The remote `herdr server` owns the remote pane PTYs (verified: its children
+are the pane shells, `ppid 1`, 12h uptime), and your Mac talks to it through a
+`herdr remote-client-bridge` over ssh. The Mac is a front end, not the thing
+running the terminals.
+
+**The config is seeded, never symlinked**, and it is the one case where this
+repo's include trick is unavailable. herdr writes `config.toml` itself —
+`herdr config reset-keys` rewrites it, the onboarding flow sets
+`onboarding = false`, and writes go through an atomic temp file — and there is
+**no include mechanism**: 210 config keys, not one of which imports another
+file. So it is in `COPY`, with the same one-directional tradeoff as
+`.claude/settings.json`: a new machine gets the tracked baseline, and anything
+you then change locally has to be copied back deliberately.
+
+```sh
+herdr config check          # validate; it names the line and column
+herdr server reload-config  # apply without restarting, prints status: applied
+```
+
+**Machine profiles are never tracked.** `herdr machine add` saves an SSH target,
+and a profile is the *only* thing that makes cross-machine agent control
+possible — so it being absent is the safety property. Verified: the workspace
+answers "No saved SSH machines", which is why a remote Claude cannot reach the
+Mac through herdr. The reverse direction is blocked by a `permissions.deny` on
+`Bash(herdr --machine:*)` in the root-owned
+`/Library/Application Support/ClaudeCode/managed-settings.json`; `--machine` is
+accepted *only* as a leading global flag, so a prefix pattern cannot be dodged
+by reordering. The sidebar keeps working because the state hook runs as a Claude
+Code hook, not as a Bash tool call.
+
+### Config traps
+
+Four things cost a test each, all found by bisecting with `herdr config check`:
+
+| | |
+| --- | --- |
+| **the split names are inverted** relative to tmux | `split_vertical` is *side by side*; `split_horizontal` is *stacked*. Writing it the intuitive way splits the wrong way |
+| **`fg` takes hex only** | `fg = "green"` is rejected even though `green` is a valid `theme.custom.*` key — those name theme *slots*, not colour values. `fg = "#98c379"` works |
+| **rule conditions take a string, not an array** | `{ equals = "Local", fg = "…" }`, not `equals = ["Local"]` |
+| **inline tables must stay on one line** | TOML forbids wrapping them, and because the token is an *untagged* enum one bad field fails the whole row with `data did not match any variant of RawSidebarToken` — an error that points at the row, not the mistake |
+
+**Sidebar rules match their own token's text**, which is a real limit: a rule on
+`workspace` cannot ask which machine the row belongs to, so per-machine colour
+has to live on the `machine` token. Bindings accept **arrays**, so a custom key
+can be added without losing the stock one:
+
+```toml
+split_vertical = ["prefix+v", "alt+d"]
+```
+
+**There is no agents equivalent of `workspace_picker`.** Of 63 keybindings only
+four touch agents — `previous_agent`, `next_agent`, `focus_agent`,
+`indexed.agents` — and the only two surface openers are `workspace_picker` and
+`goto` (a session navigator, whose actions are workspace- and worktree-shaped).
+The closest thing is the indexed form `focus_agent = "shift+alt+1..9"`, which
+jumps straight to the Nth agent; its order follows `ui.agent_panel_sort`
+(`spaces` by default, so workspace order — `priority` would reshuffle the
+numbers as agents change state).
+
+**Alt bindings need the terminal to send Meta**, the same iTerm2 *Left Option =
+`Esc+`* setting the tmux keys depend on.
+
+### herdr and tmux together
+
+They cannot nest. `_tmux_autoattach_wanted` guards on `$HERDR_ENV` for a reason
+written up in the [tmux](#tmux) guard table: a herdr pane that auto-attaches to
+tmux lands in whatever session was most recently used — once, a **live Claude
+session** — and is useless to herdr anyway, because `agent start` needs the
+shell itself in the foreground and answers `agent_pane_busy` behind `tmux
+attach`. The state hook also never fires, since `HERDR_ENV` and
+`HERDR_SOCKET_PATH` do not survive a tmux server's environment.
+
+herdr-inside-herdr is not a thing either: the binary detects `HERDR_ENV` and
+greets you with *"inception detected"*. For an isolated experiment use a named
+server, `herdr --session scratch`, which is the `tmux -L probe` habit one tool
+along.
+
+**Not yet settled: whether herdr can replace tmux.** It persists panes with
+their `cwd` *and* the Claude `agent_session_id` with `resume_argv` — which would
+be better than our tmux setup, where a restored Claude pane has to open the
+picker because tmux cannot tell which transcript belongs to which pane. But
+restore across a machine actually going away is untested, and **nothing starts
+`herdr server` at boot** (no service mode; `herdr server` only has `stop` and
+`reload-config`), so a Coder workspace auto-stop needs something in the template
+to bring it back. Until that is proven, tmux keeps the persistence job.
 
 ## lazygit
 

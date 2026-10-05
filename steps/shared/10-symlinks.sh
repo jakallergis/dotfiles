@@ -19,9 +19,14 @@
 # copy is a starting point, copied once, and the machine owns it from then on.
 # The tradeoff is real and one-directional: changes you make on a machine do not
 # flow back, and have to be copied into the repo deliberately.
+#
+# herdr's config.toml is the same case for the same two reasons: it writes the
+# file itself (`herdr config reset-keys`, the onboarding flag, and an atomic
+# temp-file write), and it has no include mechanism — 210 config keys, none of
+# which import another file.
 
 MIRROR=".config .claude .agents"
-COPY=".claude/settings.json"
+COPY=".claude/settings.json .config/herdr/config.toml"
 
 shopt -s dotglob nullglob
 

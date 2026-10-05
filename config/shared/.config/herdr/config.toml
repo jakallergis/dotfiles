@@ -1,0 +1,100 @@
+# Tracked herdr config — the BASELINE for a new machine, not a live link.
+#
+# This file is seeded by steps/shared/10-symlinks.sh (see COPY), never
+# symlinked, because herdr writes config.toml itself: `herdr config reset-keys`
+# rewrites it, the onboarding flow sets `onboarding = false`, and the binary
+# writes it atomically via a temp file ("could not allocate a unique config
+# temporary file"). herdr also has no include mechanism — 210 config keys and
+# not one of them imports another file — so the tracked-intent/local-override
+# split used for git, zsh and mise is simply unavailable here.
+#
+# Consequence, and it is one-directional: changes you make on a machine do NOT
+# flow back. When you settle on something you want everywhere, copy it into
+# this file deliberately and commit.
+#
+# Validate after editing:  herdr config check
+# Apply without restart:   herdr server reload-config
+
+onboarding = false
+
+[ui.toast]
+delivery = "herdr"
+
+[theme]
+name = "one-dark"
+auto_switch = false
+
+# ---------------------------------------------------------------------------
+# Splits on Option-d, mirroring the tmux bindings.
+#
+# herdr's naming is the OPPOSITE of tmux's: "vertical" means side by side,
+# "horizontal" means stacked. So Option-d (tmux: split right) is split_vertical.
+# Arrays keep the stock prefix bindings working alongside the new ones.
+[keys]
+split_vertical   = ["prefix+h", "alt+d"] # side by side
+split_horizontal = ["prefix+v", "alt+shift+d"] # stacked
+new_workspace = ["alt+n"]
+new_tab = ["alt+shift+n"]
+goto = ["alt+s"]
+focus_pane_left = ['alt+ctrl+left']
+focus_pane_right = ['alt+ctrl+right']
+focus_pane_up = ['alt+ctrl+up']
+focus_pane_down = ['alt+ctrl+down']
+swap_pane_left = ['shift+alt+left']
+swap_pane_right = ['shift+alt+right']
+swap_pane_up = ['shift+alt+up']
+swap_pane_down = ['shift+alt+down']
+next_agent = ['alt+down']
+previous_agent = ['alt+up']
+close_workspace = ['shift+alt+w']
+workspace_picker = ['alt+1']
+reload_config = ['shift+alt+r', 'prefix+shift+r']
+zoom = ['prefix+z', 'alt+z']
+
+[[keys.command]]
+key = "alt+g"
+type = "popup"
+command = "lazygit"
+description = "run lazygit"
+width = "80%"
+height = "80%"
+
+[[keys.command]]
+key = "alt+o"
+type = "popup"
+command = "druk"
+description = "run druk"
+width = "90%"
+height = "90%"
+
+[[keys.command]]
+key = "shift+alt+t"
+type = "popup"
+command = "exec \"${SHELL:-sh}\""
+description = "open scratch terminal"
+width = "50%"
+height = "80%"
+
+[ui]
+sidebar_width     = 34
+sidebar_max_width = 80
+window_title = "{hostname}: {workspace}"
+prompt_new_tab_name = false
+prompt_new_workspace_name = true
+pane_outer_borders = false
+pane_gaps = false
+hide_tab_bar_when_single_tab = true
+copy_on_select = false
+
+[ui.sidebar.agents]
+rows = [
+  ["state_icon", "workspace"],
+  ["terminal_title"],
+  [{ token = "machine", rules = [{ contains = "Coder", fg = "#fcc203" }] }, "agent", "tab"],
+]
+# mise owns the binary and pins it in the tracked mise config, so herdr's own
+# background version check could only produce drift between the two — the same
+# reason lazygit is set to `update.method: never`. `mise up herdr` is the
+# upgrade path.
+[update]
+version_check = false

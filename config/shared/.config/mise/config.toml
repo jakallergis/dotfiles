@@ -7,6 +7,7 @@ eza = "latest"
 fd = "latest"
 fzf = "latest"
 gh = "latest"
+herdr = { version = "latest", os = ["linux", "macos"] }
 jq = "latest"
 lazygit = "latest"
 node = "lts"
