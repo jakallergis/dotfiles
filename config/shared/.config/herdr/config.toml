@@ -54,7 +54,7 @@ zoom = ['prefix+z', 'alt+z']
 [[keys.command]]
 key = "alt+g"
 type = "popup"
-command = "lazygit"
+command = "env DOTFILES_TMUX_AUTOATTACH=0 zsh -lic lazygit"
 description = "run lazygit"
 width = "80%"
 height = "80%"
@@ -62,7 +62,7 @@ height = "80%"
 [[keys.command]]
 key = "alt+o"
 type = "popup"
-command = "druk"
+command = "env DOTFILES_TMUX_AUTOATTACH=0 zsh -lic druk"
 description = "run druk"
 width = "90%"
 height = "90%"
