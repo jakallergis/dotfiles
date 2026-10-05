@@ -45,9 +45,11 @@ Three things it is built to survive:
   `install.sh` works out whether a privileged command *can* succeed and skips
   rather than fails; almost everything comes from [mise](https://mise.jdx.dev),
   which needs no package manager.
-- **A dropped connection.** tmux is always installed and remote shells attach to
-  their last session automatically, so an agent you set going yesterday is still
-  going when you ssh back in. See [tmux](#tmux).
+- **A dropped connection.** Both multiplexers keep working when the network
+  does not: a herdr server owns its panes and outlives its client, and tmux
+  sessions survive a detach. An agent you set going yesterday is still going
+  when you come back — `t` or `herdr` reattaches to it. See
+  [herdr](#herdr) and [tmux](#tmux).
 - **Three operating systems, one `.zshrc`.** Every block in it is guarded, so
   there is no `config/linux/.zshrc` to keep in sync.
 
@@ -93,7 +95,7 @@ to `~/.dotfiles-backup/` first.
 | **shell** | zsh + [oh-my-zsh](https://ohmyz.sh) + [powerlevel10k](https://github.com/romkatv/powerlevel10k), autosuggestions, syntax highlighting |
 | **tools** | one [mise](https://mise.jdx.dev) config installs node, bun, python, ruby, and `atuin bat delta eza fd fzf gh herdr jq lazygit tmux zoxide` |
 | **history** | [atuin](https://atuin.sh) on <kbd>Ctrl</kbd>+<kbd>R</kbd>, plus `ahist` for a cross-author fuzzy picker |
-| **sessions** | tmux, auto-attached on any machine you reach over ssh — [see below](#tmux) |
+| **sessions** | [herdr](#herdr) for day-to-day panes and agents; tmux still there, started by hand with `t` — [see below](#tmux) |
 | **git** | tracked identity, `gh`, [per-machine ssh commit signing](#commit-signing), [delta](https://github.com/dandavison/delta) diffs, [lazygit](https://github.com/jesseduffield/lazygit) on `lg` |
 | **editor** | [druk](https://druk.letstri.dev), falling back to vim |
 | **fonts** | MesloLGS NF fetched from upstream, plus the vendored Hack and Meslo Powerline |
@@ -488,7 +490,7 @@ Every block is guarded, so one shared `.zshrc` serves all three OSes. No
 | `functions.zsh` | `mkcd`, `killport`, `dots`, `gclone`, `ahist` |
 | `dirstack.zsh` | seeds `~` onto a new shell's stack, and `cdc` |
 | `fzf.zsh` | fd/bat wiring for previews |
-| `tmux.zsh` | `t`, and the remote auto-attach |
+| `tmux.zsh` | `t` — nothing runs at shell startup |
 | `1password.zsh` | `secret`, `oprun` — inert without the `op` CLI |
 
 **Vendor or install?** A single stable file (~100 lines) gets vendored here with
@@ -586,21 +588,31 @@ tmux = { version = "latest", os = ["linux", "macos"] }
 There is no Windows build, and an ungated entry fails `mise install` — and so
 the whole step — on the Git Bash lane.
 
-**Auto-attach is remote-only, and every guard below is a way it goes wrong.** The
-condition lives in `_tmux_autoattach_wanted`, kept as a function rather than
-inlined so that when a box does not attach you can run it and read `$?`.
+**Nothing starts tmux at shell startup, and that is a deliberate reversal.**
+`tmux.zsh` used to end by dropping every remote shell straight into tmux, behind
+a stack of guards that were each a way the convenience went wrong: `$TMUX` and
+`$STY` so a pane did not attach to the session it was already in; `$HERDR_ENV`
+so a herdr pane did not either; `-o interactive` because `ssh host <cmd>`, scp
+and git-over-ssh all start a shell and none may be handed a full-screen program;
+`-t 1`; `TERM=dumb`; and the VS Code and JetBrains variables, because both
+reconnect their own remote terminals.
 
-| guard | what it stops |
-| --- | --- |
-| `$TMUX`, `$STY` | tmux runs `$SHELL` for every new pane. Without this the first pane attaches to the session it is already in, forever |
-| `$HERDR_ENV` | the same trap one multiplexer further: [herdr](#herdr) runs `$SHELL` for every pane too. Unguarded, a pane meant for a fresh agent attached to a **live Claude session** instead — `tmux attach` takes the most recently used one — a keystroke away from typing into that conversation, and resizing its window for every other client. It also made the pane useless to herdr: `agent start` needs the shell in the foreground and answers `agent_pane_busy` behind `tmux attach` |
-| `-o interactive` | `ssh host <cmd>`, scp, rsync and git-over-ssh all start a shell. None may be handed a full-screen program |
-| `-t 1` | the same thing again, for anything without a terminal |
-| `$TERM = dumb` | a captive shell inside an editor |
-| `$TERM_PROGRAM`, `$VSCODE_INJECTION`, `$TERMINAL_EMULATOR` | VS Code and JetBrains reconnect their own remote terminals; tmux on top confuses both |
-| `$SSH_CONNECTION`/`$SSH_TTY`/`$SSH_CLIENT`, `$CODER_AGENT_URL`/`$CODER_WORKSPACE_NAME` | the positive test — remote, or a Coder workspace |
+Every one of those guards existed to make a single convenience safe, and herdr
+took the convenience's job. A shell that silently becomes a tmux client is a
+surprise everywhere else — most sharply inside a herdr pane, where it attached
+to whatever session was most recently used (once, a **live Claude session**) and
+left the pane useless to `agent start`, which needs the shell itself in the
+foreground.
 
-`DOTFILES_TMUX_AUTOATTACH=0` in `~/.zshrc.local` turns it off for one machine.
+Deleting it removed a whole class of workaround with it: herdr's popup commands
+run a login shell to find their tools, and no longer need an environment prefix
+to stop that shell hijacking the popup. Verified with a pty and a stub `tmux`: a shell with
+`SSH_CONNECTION` and `CODER_WORKSPACE_NAME` set, on a real tty — the exact
+conditions that used to attach — now invokes tmux **zero** times.
+
+tmux is still installed and still persistent. It is started by hand with `t`,
+which resumes the most recent session nobody is sitting in, so reaching a
+long-running agent is one command rather than zero.
 
 **A second connection gets its own session, not a second seat in the first.**
 `tmux attach` takes the most recently used session whether or not a client is
@@ -1226,6 +1238,55 @@ accepted *only* as a leading global flag, so a prefix pattern cannot be dodged
 by reordering. The sidebar keeps working because the state hook runs as a Claude
 Code hook, not as a Bash tool call.
 
+### Popup commands run on the selected machine, not on your Mac
+
+`[[keys.command]]` entries with `type = "popup"` cost an afternoon. The docs are
+the thing to read first:
+
+> The UI uses the client's local theme, sidebar settings, and keybindings by
+> default. Custom commands and plugins advertised by the selected server still
+> run there. Herdr does not copy local command plugins, configuration,
+> executables, or secrets onto SSH hosts. Missing remote commands fail visibly.
+
+So the **key** is recognised from the local config, but the **command** must
+resolve on whichever machine you are viewing. And it is spawned by the herdr
+*server*, which does not inherit a login shell's `PATH`. On the Coder workspace
+that server had Coder's agent PATH:
+
+```
+/tmp/coder-script-data/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin
+```
+
+— no `~/.local/bin`, no mise. So `lazygit` and `druk` were both unfindable and
+the popup flashed open and shut, while `alt+d` worked fine because a split needs
+no subprocess. Exactly the class of bug as `36-tmux-boot.sh`, where launchd
+hands a job a bare PATH and the script therefore hardcodes one.
+
+Hence `command = "zsh -lic lazygit"`:
+
+| | |
+| --- | --- |
+| `-l` | login shell — reads `~/.zprofile`; insurance |
+| `-i` | **interactive — reads `~/.zshrc`, where `mise activate` and the `~/.druk/bin` PATH line live.** This is the flag that fixes it |
+| `-c` | run and exit, otherwise you get a shell rather than the tool |
+
+"Missing remote commands fail visibly" overstates it: from the client it looked
+like the key did nothing. **The evidence is in the server log on that machine**,
+and it is unambiguous once read:
+
+```sh
+grep pane.exit ~/.config/herdr/herdr-server.log      # on the remote
+#  status="ExitStatus { code: 127, signal: None }"   → command not found
+```
+
+Reading that log first would have saved two wrong theories — a 127 cannot be a
+tool refusing its working directory, because a tool that refuses still *runs*.
+
+Also worth knowing, from the same docs page: **popup commands do not receive
+`HERDR_PANE_ID`** — use `HERDR_ACTIVE_PANE_ID` for the underlying tiled pane. So
+a popup is not a normal pane environment, which is why the popup needed its own
+thinking about what a login shell would do inside it.
+
 ### Config traps
 
 Four things cost a test each, all found by bisecting with `herdr config check`:
@@ -1260,13 +1321,14 @@ numbers as agents change state).
 
 ### herdr and tmux together
 
-They cannot nest. `_tmux_autoattach_wanted` guards on `$HERDR_ENV` for a reason
-written up in the [tmux](#tmux) guard table: a herdr pane that auto-attaches to
-tmux lands in whatever session was most recently used — once, a **live Claude
-session** — and is useless to herdr anyway, because `agent start` needs the
-shell itself in the foreground and answers `agent_pane_busy` behind `tmux
-attach`. The state hook also never fires, since `HERDR_ENV` and
-`HERDR_SOCKET_PATH` do not survive a tmux server's environment.
+They cannot nest, and the fix in the end was to stop trying. A herdr pane whose
+shell auto-attached to tmux landed in whatever session was most recently used —
+once, a **live Claude session** — and was useless to herdr anyway, because
+`agent start` needs the shell itself in the foreground and answers
+`agent_pane_busy` behind `tmux attach`. The state hook never fired either, since
+`HERDR_ENV` and `HERDR_SOCKET_PATH` do not survive a tmux server's environment.
+A `$HERDR_ENV` guard patched that for a while; removing the auto-attach
+altogether deleted the need for it. See [tmux](#tmux).
 
 herdr-inside-herdr is not a thing either: the binary detects `HERDR_ENV` and
 greets you with *"inception detected"*. For an isolated experiment use a named

@@ -171,59 +171,11 @@ t() {
   fi
 }
 
-# _tmux_autoattach_wanted — should this shell drop straight into tmux?
+# Nothing starts tmux at shell startup. Start it by hand with `t`, which
+# resumes the most recent session nobody is sitting in.
 #
-# Only on machines reached over the network. Locally there are already iTerm2
-# tabs and nothing that can drop the connection, so wrapping every shell in tmux
-# would buy nothing and cost a keystroke prefix on all of them.
-#
-# Every guard below is a way this goes wrong in practice, which is why they are
-# separate lines rather than one condition:
-#
-#   $TMUX          tmux runs $SHELL for every new pane. Without this, the first
-#                  pane attaches to the session it is already in, forever.
-#   $STY           the same trap, one multiplexer along (GNU screen).
-#   $HERDR_ENV     and again, one multiplexer further: herdr also runs $SHELL
-#                  for every pane it creates. Without this guard a herdr pane
-#                  auto-attaches, and `tmux attach` takes the most recently
-#                  used session — so a pane meant for a fresh agent landed in a
-#                  *live* Claude session instead, one keystroke from typing
-#                  into someone else's conversation, and resized its window for
-#                  every other client. It also makes the pane useless to herdr:
-#                  `agent start` needs the shell itself in the foreground and
-#                  returns `agent_pane_busy` behind `tmux attach`, and the
-#                  state-reporting hook exits unless HERDR_ENV, HERDR_PANE_ID
-#                  and HERDR_SOCKET_PATH reach the agent's own environment,
-#                  which they do not through a tmux server.
-#   interactive    `ssh host <cmd>`, scp, rsync and git-over-ssh all start a
-#                  shell, and none of them may be handed a full-screen program.
-#   -t 1           belt and braces for the same thing: no terminal, no tmux.
-#   TERM=dumb      a captive shell inside an editor.
-#   VS Code /      both reconnect their remote terminals themselves; tmux on
-#   JetBrains      top of that confuses their session handling and yours.
-#
-# Kept as a function, not inlined, so that when a box does not auto-attach you
-# can run it and read $? instead of guessing.
-#
-# DOTFILES_TMUX_AUTOATTACH=0 in ~/.zshrc.local turns it off for one machine.
-_tmux_autoattach_wanted() {
-  [[ ${DOTFILES_TMUX_AUTOATTACH:-1} == 1 ]] || return 1
-  [[ -z $TMUX && -z $STY ]]                 || return 1
-  [[ -z $HERDR_ENV ]]                       || return 1   # herdr owns this pane
-  [[ -o interactive ]]                      || return 1
-  [[ -t 1 ]]                                || return 1
-  [[ $TERM != dumb ]]                       || return 1
-  [[ -z $VSCODE_INJECTION && $TERM_PROGRAM != vscode ]] || return 1
-  [[ -z $TERMINAL_EMULATOR ]]               || return 1   # JetBrains sets this
-  [[ -n $SSH_CONNECTION || -n $SSH_TTY || -n $SSH_CLIENT ||
-     -n $CODER_AGENT_URL || -n $CODER_WORKSPACE_NAME ]]   || return 1
-}
-
-if _tmux_autoattach_wanted; then
-  # Deliberately not `exec tmux`. exec replaces this shell, so a typo in
-  # tmux.conf — or a missing terminfo entry — would end the ssh session the
-  # instant tmux gave up, on the remote box, with no shell left to fix it from.
-  # Run it normally and a failure just leaves you at a prompt. Detaching with
-  # Ctrl-b d lands you at one too, which is also the friendlier ending.
-  _tmux_resume
-fi
+# This file used to auto-attach every remote shell, behind nine guards. Do not
+# put it back: inside a herdr pane it attached to whatever session was most
+# recently used — once a *live* Claude session — and left the pane useless to
+# `agent start`, which needs the shell itself in the foreground. The full story
+# is in the README's tmux section.
