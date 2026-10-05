@@ -327,6 +327,74 @@ Same shape elsewhere, and the tool's own mechanism every time:
 | mise | tracked `config.toml`, plus `~/.config/mise/conf.d/*.toml` for machine-only tools |
 | Claude Code | no include exists — seeded copy, see `COPY` above |
 
+## Branching off a feature branch
+
+Git's defaults make this fail, and the failure looks like a lazygit bug rather
+than a config gap. Work here branches from a *feature* branch — a worktree cut
+from `origin/us-version`, not from `main` — and that is the case two defaults
+conspire against:
+
+| default | what it does |
+| --- | --- |
+| `branch.autoSetupMerge = true` | creating a branch from a **remote-tracking** start point sets the new branch's upstream to that start point |
+| `push.default = simple` | **refuses** to push when the upstream's name differs from the branch's |
+
+So `git worktree add -b feat/ARI-46970-… origin/us-version` quietly writes:
+
+```gitconfig
+branch.feat/ARI-46970-diagnosis-confirmation-output.remote = origin
+branch.feat/ARI-46970-diagnosis-confirmation-output.merge  = refs/heads/us-version
+```
+
+and every push then dies with
+
+```
+fatal: The upstream branch of your current branch does not match
+       the name of your current branch.
+```
+
+`git push origin HEAD` gets the commits up but leaves the upstream wrong, which
+is the part that reads as a tool bug: **lazygit keeps showing the commits red
+and the branch behind**, because it is comparing `HEAD` against
+`origin/us-version` — which genuinely does not contain them, and is itself ~180
+commits ahead. Nothing is misconfigured in lazygit; it is reporting what git
+believes.
+
+Three settings in `shared.gitconfig` fix it:
+
+```gitconfig
+[branch]
+	autoSetupMerge = simple
+[push]
+	default = current
+	autoSetupRemote = true
+```
+
+- **`autoSetupMerge = simple`** — track only when the names match, so a branch
+  off a feature branch gets *no* upstream rather than the wrong one.
+- **`push.autoSetupRemote = true`** (git ≥ 2.37) — a plain `git push` on a
+  branch with no upstream creates `origin/<same-name>` and sets it. No `-u`, and
+  lazygit's push button works.
+- **`push.default = current`** — belt and braces; a name mismatch can never
+  block a push again.
+
+Verified end to end against a throwaway remote, for both `checkout -b` and
+`worktree add` from `origin/us-version`:
+
+```
+upstream after creation  → NONE                       (was origin/us-version)
+plain `git push`         → * [new branch] …  set up to track origin/<same name>
+behind/ahead             → 0/0                        (lazygit shows it pushed)
+```
+
+**Branches that already have the wrong upstream need fixing once each** — the
+settings only change what happens at creation time:
+
+```sh
+git branch --set-upstream-to=origin/<branch>   # if it is already pushed
+git branch --unset-upstream && git push        # if it is not
+```
+
 ## Commit signing
 
 **One key per machine, generated on the machine, never in the repo.**

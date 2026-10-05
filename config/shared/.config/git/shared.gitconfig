@@ -33,6 +33,39 @@
 [gpg]
 	format = ssh
 
+# Branching off a *feature* branch is the normal shape of work here, and git's
+# defaults make it fail. `branch.autoSetupMerge` defaults to `true`, so creating
+# a branch from a remote-tracking start point — `git checkout -b feat/x
+# origin/us-version`, or a worktree made from it — sets the new branch's
+# upstream to `origin/us-version`. Then `push.default` defaults to `simple`,
+# which refuses to push when the upstream's name differs from the branch's:
+#
+#   fatal: The upstream branch of your current branch does not match
+#          the name of your current branch.
+#
+# `git push origin HEAD` works around it but leaves the upstream wrong, so
+# lazygit keeps showing the commits red and the branch "behind" — it is
+# comparing HEAD against origin/us-version, which really does lack them.
+#
+#   autoSetupMerge = simple   track only when the names match, so a branch off
+#                             a feature branch gets NO upstream rather than the
+#                             wrong one
+#   autoSetupRemote = true    git >= 2.37: a plain `git push` on a branch with
+#                             no upstream creates origin/<same-name> and sets
+#                             it, so lazygit's push button works too
+#   default = current         belt and braces: a name mismatch can never block
+#                             a push again
+#
+# Already-wrong branches need fixing by hand, once each:
+#   git branch --set-upstream-to=origin/<branch>      # if already pushed
+#   git branch --unset-upstream && git push           # if not
+[branch]
+	autoSetupMerge = simple
+
+[push]
+	default = current
+	autoSetupRemote = true
+
 [init]
 	defaultBranch = main
 
