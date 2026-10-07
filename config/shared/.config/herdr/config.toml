@@ -90,12 +90,16 @@ pane_gaps = false
 hide_tab_bar_when_single_tab = true
 copy_on_select = false
 
+[ui.sidebar.spaces]
+rows = [
+  ["state_text", "workspace"]
+]
+
 [ui.sidebar.agents]
 rows = [
-  ["state_icon", "workspace"],
-  ["terminal_title"],
-  [{ token = "machine", rules = [{ contains = "Coder", fg = "#fcc203" }] }, "agent", "tab"],
+  ["state_text", { token = "machine", fg = "#fcc203", rules = [{ equals = "Local", ignore_case = true, fg = "#5c6370" }], dim = true }, "workspace"],
 ]
+
 # mise owns the binary and pins it in the tracked mise config, so herdr's own
 # background version check could only produce drift between the two — the same
 # reason lazygit is set to `update.method: never`. `mise up herdr` is the
